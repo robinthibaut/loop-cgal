@@ -1,0 +1,42 @@
+# C++ artifacts
+*.o
+*.so
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+*.out
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+_skbuild/
+*.whl
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Project specific
+_deps/
+external/
+third_party/
+
+# OS specific
+.DS_Store
+Thumbs.db
