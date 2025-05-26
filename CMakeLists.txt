@@ -28,9 +28,8 @@ find_package(pybind11 REQUIRED)
 # Add the Python module
 add_library(loop_cgal MODULE
     loop_cgal/bindings.cpp
-    src/marching_cubes.cpp  # Add the implementation file
-    src/api.cpp             # Add other relevant files
-    src/isosurface_intersection.cpp
+    src/clip.cpp
+    
 )
 target_link_libraries(loop_cgal PRIVATE pybind11::module CGAL::CGAL)
 target_include_directories(loop_cgal PRIVATE ${CMAKE_SOURCE_DIR}/src)
