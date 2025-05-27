@@ -9,10 +9,8 @@ PYBIND11_MODULE(loop_cgal, m)
 {
     
       m.def("clip_surface", &clip_surface,
-          py::arg("surface_1_triangles"),
-          py::arg("surface_1_vertices"),
-          py::arg("surface_2_triangles"),
-          py::arg("surface_2_vertices"),
+          py::arg("tm"),
+          py::arg("clipper"),
           "Clip one surface with another.");
       py::class_<NumpyMesh>(m, "NumpyMesh")
           .def(py::init<>())
