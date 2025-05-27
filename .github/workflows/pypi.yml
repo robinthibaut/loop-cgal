@@ -33,9 +33,6 @@ jobs:
         with:
           name: dist
           path: dist
-      - name: copy to wheelhouse
-        run: |
-          cp -r wheelhouse/*/*.whl dist
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
