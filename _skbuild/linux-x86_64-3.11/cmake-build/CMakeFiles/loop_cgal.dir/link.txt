@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/loop_cgal.dir/link.d -shared  -o loop_cgal.so CMakeFiles/loop_cgal.dir/src/bindings.cpp.o CMakeFiles/loop_cgal.dir/src/marching_cubes.cpp.o  /usr/lib/x86_64-linux-gnu/libgmpxx.so /usr/lib/x86_64-linux-gnu/libmpfr.so /usr/lib/x86_64-linux-gnu/libgmp.so

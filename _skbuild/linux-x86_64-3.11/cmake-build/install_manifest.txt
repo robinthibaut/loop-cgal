@@ -1,1 +1,0 @@
-/home/lgrose/dev/loop-cgal/_skbuild/linux-x86_64-3.11/cmake-install/loop_cgal/loop_cgal/loop_cgal.so
