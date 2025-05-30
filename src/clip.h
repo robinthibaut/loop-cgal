@@ -16,8 +16,8 @@ NumpyMesh clip_surface(
     double target_edge_length = 10.0
     , bool remesh_before_clipping = true,
     bool remesh_after_clipping = true,
-    bool remove_degenerate_faces = true
-    double duplicate_vertex_threshold = 1e-6
+    bool remove_degenerate_faces = true,
+    double duplicate_vertex_threshold = 1e-6,
     double area_threshold = 1e-6
 );
 #endif

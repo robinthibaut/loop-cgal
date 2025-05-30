@@ -8,6 +8,8 @@ def clip_pyvista_polydata(
     remesh_before_clipping: bool = True,
     remesh_after_clipping: bool = True,
     remove_degenerate_faces: bool = True,
+    duplicate_vertex_threshold: float = 0.001,
+    area_threshold: float = 0.0001,
 ) -> pv.PolyData:
     """
     Clip two pyvista PolyData objects using the CGAL library.
@@ -39,5 +41,8 @@ def clip_pyvista_polydata(
         remesh_before_clipping=remesh_before_clipping,
         remesh_after_clipping=remesh_after_clipping,
         remove_degenerate_faces=remove_degenerate_faces,
+        duplicate_vertex_threshold=duplicate_vertex_threshold,
+        area_threshold=area_threshold,
+        
     )
     return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
