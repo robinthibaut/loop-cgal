@@ -4,6 +4,10 @@ import numpy as np
 def clip_pyvista_polydata(
     surface_1: pv.PolyData,
     surface_2: pv.PolyData,
+    target_edge_length: float = 10.0,
+    remesh_before_clipping: bool = True,
+    remesh_after_clipping: bool = True,
+    remove_degenerate_faces: bool = True,
 ) -> pv.PolyData:
     """
     Clip two pyvista PolyData objects using the CGAL library.
@@ -31,5 +35,9 @@ def clip_pyvista_polydata(
     mesh = clip_surface(
         tm,
         clipper,
+        target_edge_length=target_edge_length,
+        remesh_before_clipping=remesh_before_clipping,
+        remesh_after_clipping=remesh_after_clipping,
+        remove_degenerate_faces=remove_degenerate_faces,
     )
     return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
