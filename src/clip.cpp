@@ -8,7 +8,7 @@
 #include <CGAL/Polygon_mesh_processing/merge_border_vertices.h>
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
 #include <CGAL/boost/graph/properties.h>
-
+#include <CGAL/version.h>
 
 
 std::set<TriangleMesh::Edge_index> collect_border_edges(const TriangleMesh &tm)
@@ -296,8 +296,11 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper, double target_edge_length
                     std::cout << "Removing degenerate faces." << std::endl;
                 }
                 std::set<TriangleMesh::Edge_index> protected_edges = collect_border_edges(_tm);
+                #if CGAL_VERSION_NR >= 1060000000
                 bool beautify_flag = CGAL::Polygon_mesh_processing::remove_almost_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
-                if (!beautify_flag)
+#else
+                bool beautify_flag = CGAL::Polygon_mesh_processing::remove_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
+#endif                if (!beautify_flag)
                 {
                     std::cout << "removing degenrate faces failed." << std::endl;
                 }
@@ -409,7 +412,12 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper, double target_edge_lengt
                     std::cout << "Removing degenerate faces." << std::endl;
                 }
                 std::set<TriangleMesh::Edge_index> protected_edges = collect_border_edges(_tm);
+
+#if CGAL_VERSION_NR >= 1060000000
                 bool beautify_flag = CGAL::Polygon_mesh_processing::remove_almost_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
+#else
+                bool beautify_flag = CGAL::Polygon_mesh_processing::remove_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
+#endif
                 if (!beautify_flag)
                 {
                     std::cout << "removing degenrate faces failed." << std::endl;
