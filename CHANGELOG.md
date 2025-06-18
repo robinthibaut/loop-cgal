@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Loop3D/loop-cgal/compare/v0.1.0...v0.1.1) (2025-06-18)
+
+
+### Bug Fixes
+
+* allow protect_constraints and relax constraints to be passed refine mesh ([5a81c4f](https://github.com/Loop3D/loop-cgal/commit/5a81c4f99055699297b471e0f5112b3e438ed30f))
+
 ## 0.1.0 (2025-06-13)
 
 
