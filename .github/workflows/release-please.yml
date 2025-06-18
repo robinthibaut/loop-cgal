@@ -17,7 +17,9 @@ jobs:
       - uses: GoogleCloudPlatform/release-please-action@v4
         id: release
         with:
-          path: loop_cgal
+          release-type: python
+          package-name: loop_cgal
+       
           
     outputs:
       release_created: ${{ steps.release.outputs.releases_created }}
