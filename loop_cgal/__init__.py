@@ -12,6 +12,8 @@ def clip_pyvista_polydata_with_plane(
     remove_degenerate_faces: bool = True,
     duplicate_vertex_threshold: float = 0.001,
     area_threshold: float = 0.0001,
+    protect_constraints: bool = False,
+    relax_constraints: bool = True,
     verbose: bool = False,
 ) -> pv.PolyData:
     """
@@ -61,6 +63,8 @@ def clip_pyvista_polydata_with_plane(
         remove_degenerate_faces=remove_degenerate_faces,
         duplicate_vertex_threshold=duplicate_vertex_threshold,
         area_threshold=area_threshold,
+        protect_constraints=protect_constraints,
+        relax_constraints=relax_constraints,
         verbose=verbose,
         
     )
@@ -75,6 +79,8 @@ def clip_pyvista_polydata(
     remove_degenerate_faces: bool = True,
     duplicate_vertex_threshold: float = 0.001,
     area_threshold: float = 0.0001,
+    protect_constraints: bool = False,
+    relax_constraints: bool = True,
     verbose: bool = False,
 ) -> pv.PolyData:
     """
@@ -109,6 +115,8 @@ def clip_pyvista_polydata(
         remove_degenerate_faces=remove_degenerate_faces,
         duplicate_vertex_threshold=duplicate_vertex_threshold,
         area_threshold=area_threshold,
+        protect_constraints=protect_constraints,
+        relax_constraints=relax_constraints,
         verbose=verbose,
         
     )

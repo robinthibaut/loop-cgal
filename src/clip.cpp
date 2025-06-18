@@ -10,7 +10,6 @@
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/version.h>
 
-
 std::set<TriangleMesh::Edge_index> collect_border_edges(const TriangleMesh &tm)
 {
     std::set<TriangleMesh::Edge_index> border_edges;
@@ -84,7 +83,7 @@ Plane load_plane(NumpyPlane plane, bool verbose)
     }
     return Plane(Point(point_buf(0), point_buf(1), point_buf(2)), Vector(normal_buf(0), normal_buf(1), normal_buf(2)));
 }
-void refine_mesh(TriangleMesh &mesh, bool split_long_edges , bool verbose , double target_edge_length , int number_of_iterations, bool protect_constraints, bool relax_constraints)
+void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose, double target_edge_length, int number_of_iterations, bool protect_constraints, bool relax_constraints)
 {
     // Split long edges before remeshing
     CGAL::Polygon_mesh_processing::split_long_edges(edges(mesh), target_edge_length, mesh);
@@ -218,7 +217,18 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold, double dupl
     return result;
 }
 
-NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper, double target_edge_length, bool remesh_before_clipping, bool remesh_after_clipping, bool remove_degenerate_faces, double duplicate_vertex_threshold, double area_threshold, bool verbose)
+NumpyMesh clip_plane(
+    NumpyMesh tm, 
+    NumpyPlane clipper, 
+    double target_edge_length, 
+    bool remesh_before_clipping, 
+    bool remesh_after_clipping, 
+    bool remove_degenerate_faces, 
+    double duplicate_vertex_threshold, 
+    double area_threshold, 
+    bool protect_constraints, 
+    bool relax_constraints, 
+    bool verbose)
 {
     int number_of_iterations = 3; // Number of remeshing iterations
     if (verbose)
@@ -242,7 +252,7 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper, double target_edge_length
         {
             std::cout << "Remeshing before clipping." << std::endl;
         }
-        refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations,true,false);
+        refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations, protect_constraints, relax_constraints);
         // refine_mesh(_clipper, true, verbose, target_edge_length, number_of_iterations);
 
         if (verbose)
@@ -282,7 +292,7 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper, double target_edge_length
                 }
                 CGAL::Polygon_mesh_processing::stitch_borders(_tm);
                 CGAL::Polygon_mesh_processing::merge_duplicated_vertices_in_boundary_cycles(_tm);
-                refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations);
+                refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations, protect_constraints, relax_constraints);
 
                 if (verbose)
                 {
@@ -296,11 +306,11 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper, double target_edge_length
                     std::cout << "Removing degenerate faces." << std::endl;
                 }
                 std::set<TriangleMesh::Edge_index> protected_edges = collect_border_edges(_tm);
-                #if CGAL_VERSION_NR >= 1060000000
+#if CGAL_VERSION_NR >= 1060000000
                 bool beautify_flag = CGAL::Polygon_mesh_processing::remove_almost_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
 #else
                 bool beautify_flag = CGAL::Polygon_mesh_processing::remove_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
-#endif                if (!beautify_flag)
+#endif if (!beautify_flag)
                 {
                     std::cout << "removing degenrate faces failed." << std::endl;
                 }
@@ -329,7 +339,7 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper, double target_edge_length
     }
     return result;
 }
-NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper, double target_edge_length, bool remesh_before_clipping, bool remesh_after_clipping, bool remove_degenerate_faces, double duplicate_vertex_threshold, double area_threshold, bool verbose)
+NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper, double target_edge_length, bool remesh_before_clipping, bool remesh_after_clipping, bool remove_degenerate_faces, double duplicate_vertex_threshold, double area_threshold, bool protect_constraints, bool relax_constraints, bool verbose)
 {
     if (verbose)
     {
@@ -359,8 +369,8 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper, double target_edge_lengt
         {
             std::cout << "Remeshing before clipping." << std::endl;
         }
-        refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations,true,true);
-        refine_mesh(_clipper, true, verbose, target_edge_length, number_of_iterations,true,true);
+        refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations, protect_constraints, relax_constraints);
+        refine_mesh(_clipper, true, verbose, target_edge_length, number_of_iterations, protect_constraints, relax_constraints);
 
         if (verbose)
         {
@@ -398,7 +408,7 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper, double target_edge_lengt
                 }
                 CGAL::Polygon_mesh_processing::stitch_borders(_tm);
                 CGAL::Polygon_mesh_processing::merge_duplicated_vertices_in_boundary_cycles(_tm);
-                refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations);
+                refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations, protect_constraints, relax_constraints);
 
                 if (verbose)
                 {
@@ -448,7 +458,7 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper, double target_edge_lengt
     return result;
 }
 
-std::vector<NumpyMesh> corefine_mesh(NumpyMesh tm1, NumpyMesh tm2,double target_edge_length, double duplicate_vertex_threshold, double area_threshold, int number_of_iterations, bool relax_constraints, bool protect_constraints,bool verbose)
+std::vector<NumpyMesh> corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length, double duplicate_vertex_threshold, double area_threshold, int number_of_iterations, bool relax_constraints, bool protect_constraints, bool verbose)
 {
     // Load the meshes
     TriangleMesh _tm1 = load_mesh(tm1, false);
@@ -481,9 +491,9 @@ std::vector<NumpyMesh> corefine_mesh(NumpyMesh tm1, NumpyMesh tm2,double target_
         }
     }
     std::cout << "Found " << tm_1_shared_edges.size() << " shared edges in tm1 and " << tm_2_shared_edges.size() << " shared edges in tm2." << std::endl;
-    
+
     // std::set<TriangleMesh::Edge_index> constrained_edges;
-    
+
     std::set<TriangleMesh::Edge_index> boundary_edges = collect_border_edges(_tm1);
     std::set<TriangleMesh::Edge_index> boundary_edges2 = collect_border_edges(_tm2);
 
@@ -506,4 +516,3 @@ std::vector<NumpyMesh> corefine_mesh(NumpyMesh tm1, NumpyMesh tm2,double target_
 
     return {export_mesh(_tm1, area_threshold, duplicate_vertex_threshold, verbose), export_mesh(_tm2, area_threshold, duplicate_vertex_threshold, verbose)};
 }
-

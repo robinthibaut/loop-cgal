@@ -17,6 +17,8 @@ PYBIND11_MODULE(loop_cgal, m)
             py::arg("remove_degenerate_faces") = true,
             py::arg("duplicate_vertex_threshold") = 1e-6,
             py::arg("area_threshold") = 1e-6,
+            py::arg("protect_constraints") = false,
+            py::arg("relax_constraints") = true,
             py::arg("verbose") = false,
           "Clip one surface with another.");
       m.def("clip_plane", &clip_plane,
@@ -28,7 +30,10 @@ PYBIND11_MODULE(loop_cgal, m)
             py::arg("remove_degenerate_faces") = true,
             py::arg("duplicate_vertex_threshold") = 1e-6,
             py::arg("area_threshold") = 1e-6,
+            py::arg("protect_constraints") = false,
+            py::arg("relax_constraints") = true,
             py::arg("verbose") = false,
+
           "Clip a surface with a plane.");
       m.def("corefine_mesh", &corefine_mesh,
           py::arg("tm1"),

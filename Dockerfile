@@ -6,10 +6,20 @@ RUN dnf install -y \
     make \
     gcc \
     gcc-c++ \
-    boost-devel \
     gmp-devel \
     mpfr-devel \
     python3-pip
+
+# Remove existing Boost package
+RUN dnf remove -y boost-devel
+
+# Install Boost 1.72.0 manually
+RUN wget -q https://archives.boost.io/release/1.88.0/source/boost_1_88_0.tar.gz && \
+    tar -xzf boost_1_88_0.tar.gz && \
+    cd boost_1_88_0 && \
+    ./bootstrap.sh && \
+    ./b2 install && \
+    cd .. && rm -rf boost_1_88_0*
 
 # Optional: Install Eigen manually
 RUN wget -q https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz && \
