@@ -312,7 +312,7 @@ NumpyMesh clip_plane(
                 bool beautify_flag = CGAL::Polygon_mesh_processing::remove_degenerate_faces(faces(_tm), _tm, CGAL::parameters::edge_is_constrained_map(CGAL::make_boolean_property_map(protected_edges)));
 #endif if (!beautify_flag)
                 {
-                    std::cout << "removing degenrate faces failed." << std::endl;
+                    std::cout << "Removing degenerate faces failed." << std::endl;
                 }
                 if (verbose)
                 {
