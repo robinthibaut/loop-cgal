@@ -95,24 +95,24 @@ Plane load_plane(NumpyPlane plane, bool verbose) {
 void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
                  double target_edge_length, int number_of_iterations,
                  bool protect_constraints, bool relax_constraints) {
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // 0.  Guard‑rail: sensible target length w.r.t. bbox
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   CGAL::Bbox_3 bb = PMP::bbox(mesh);
   const double bbox_diag = std::sqrt(CGAL::square(bb.xmax() - bb.xmin()) +
                                      CGAL::square(bb.ymax() - bb.ymin()) +
                                      CGAL::square(bb.zmax() - bb.zmin()));
 
-  if (target_edge_length < 0.0001 * bbox_diag) {
+  if (target_edge_length < 1e-4 * bbox_diag) {
     if (verbose)
       std::cout << "  ! target_edge_length (" << target_edge_length
                 << ") too small – skipping remesh\n";
     return;
   }
 
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // 1.  Quick diagnostics
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   double min_e = std::numeric_limits<double>::max(), max_e = 0.0;
   for (auto e : mesh.edges()) {
     const double l = PMP::edge_length(e, mesh);
@@ -126,9 +126,9 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
   if (!CGAL::is_valid_polygon_mesh(mesh) && verbose)
     std::cout << "      ! mesh is not a valid polygon mesh\n";
 
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // 2.  Abort when self‑intersections remain
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   std::vector<std::pair<face_descriptor, face_descriptor>> overlaps;
   PMP::self_intersections(mesh, std::back_inserter(overlaps));
   if (!overlaps.empty()) {
@@ -138,9 +138,9 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
     return;
   }
 
-  // ----------------------------------------------------------------------
-  // 3.  “Tiny patch” bailout:  face count < 40  →  only split long edges
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  // 3.  “Tiny patch” bailout: only split long edges
+  // ------------------------------------------------------------------
   const std::size_t n_faces = mesh.number_of_faces();
   if (n_faces < 40) {
     if (split_long_edges)
@@ -151,9 +151,9 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
     return;
   }
 
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // 4.  Normal isotropic remeshing loop
-  // ----------------------------------------------------------------------
+  // ------------------------------------------------------------------
   for (int iter = 0; iter < number_of_iterations; ++iter) {
     if (split_long_edges)
       PMP::split_long_edges(edges(mesh), target_edge_length, mesh);
