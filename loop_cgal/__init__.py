@@ -2,6 +2,7 @@ from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine
 import pyvista as pv
 import numpy as np
 from typing import Tuple
+
 def clip_pyvista_polydata_with_plane(
     surface: pv.PolyData,
     plane_origin: np.ndarray,
@@ -120,7 +121,9 @@ def clip_pyvista_polydata(
         verbose=verbose,
         
     )
-    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+    out = pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+
+    return out
 
 def corefine_pyvista_polydata(
     surface_1: pv.PolyData,
