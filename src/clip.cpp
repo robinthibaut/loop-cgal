@@ -505,7 +505,7 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
                     CGAL::make_boolean_property_map(protected_edges)));
 #endif
         if (!beautify_flag) {
-          std::cout << "removing degenrate faces failed." << std::endl;
+          std::cout << "Removing degenerate faces failed." << std::endl;
         }
         if (verbose) {
           std::cout << "Removing degenerate faces done." << std::endl;
