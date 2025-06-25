@@ -102,7 +102,7 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
   const double bbox_diag = std::sqrt(CGAL::square(bb.xmax() - bb.xmin()) +
                                      CGAL::square(bb.ymax() - bb.ymin()) +
                                      CGAL::square(bb.zmax() - bb.zmin()));
-
+  PMP::remove_isolated_vertices(mesh);
   if (target_edge_length < 1e-4 * bbox_diag) {
     if (verbose)
       std::cout << "  ! target_edge_length (" << target_edge_length
@@ -123,7 +123,7 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
     std::cout << "      edge length range: [" << min_e << ", " << max_e
               << "]  target = " << target_edge_length << '\n';
 
-  if (!CGAL::is_valid_polygon_mesh(mesh) && verbose)
+  if (!CGAL::is_valid_polygon_mesh(mesh,verbose) && verbose)
     std::cout << "      ! mesh is not a valid polygon mesh\n";
 
   // ------------------------------------------------------------------
@@ -173,6 +173,8 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
   if (verbose)
     std::cout << "Refined mesh → " << mesh.number_of_vertices() << " V, "
               << mesh.number_of_faces() << " F\n";
+  if (!CGAL::is_valid_polygon_mesh(mesh,verbose) && verbose)
+    std::cout << "      ! mesh is not a valid polygon mesh after remeshing\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -327,9 +329,9 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper,
     if (verbose) {
       std::cout << "Clipping tm with clipper." << std::endl;
     }
-    bool flag = CGAL::Polygon_mesh_processing::clip(
+    bool flag = PMP::clip(
         _tm, _clipper, CGAL::parameters::clip_volume(false));
-    CGAL::Polygon_mesh_processing::triangulate_faces(_tm);
+    PMP::triangulate_faces(_tm);
     if (verbose) {
       std::cout << "Clipping done." << std::endl;
     }
@@ -345,11 +347,11 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper,
         if (verbose)
           std::cout << "  – stitching borders…" << std::endl;
 
-        CGAL::Polygon_mesh_processing::stitch_borders(
-            _tm, CGAL::parameters::maximum_distance(1e-4));
+        PMP::stitch_borders(
+            _tm);
         if (verbose)
           std::cout << "  – merging dup vertices…" << std::endl;
-        CGAL::Polygon_mesh_processing::
+        PMP::
             merge_duplicated_vertices_in_boundary_cycles(_tm);
         if (verbose)
           std::cout << "  – isotropic remeshing…" << std::endl;
@@ -369,13 +371,13 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper,
             collect_border_edges(_tm);
 #if CGAL_VERSION_NR >= 1060000000
         bool beautify_flag =
-            CGAL::Polygon_mesh_processing::remove_almost_degenerate_faces(
+            PMP::remove_almost_degenerate_faces(
                 faces(_tm), _tm,
                 CGAL::parameters::edge_is_constrained_map(
                     CGAL::make_boolean_property_map(protected_edges)));
 #else
         bool beautify_flag =
-            CGAL::Polygon_mesh_processing::remove_degenerate_faces(
+            PMP::remove_degenerate_faces(
                 faces(_tm), _tm,
                 CGAL::parameters::edge_is_constrained_map(
                     CGAL::make_boolean_property_map(protected_edges)));
@@ -421,11 +423,13 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
   if (verbose) {
     std::cout << "Loaded meshes." << std::endl;
   }
-
-  if (!CGAL::is_valid_polygon_mesh(_tm)) {
+  PMP::remove_isolated_vertices(_tm);
+  PMP::remove_isolated_vertices(_clipper);
+  if (!CGAL::is_valid_polygon_mesh(_tm,verbose)) {
     std::cerr << "tm is invalid!" << std::endl;
+    CGAL::is_valid_polygon_mesh(_tm,true);
   }
-  if (!CGAL::is_valid_polygon_mesh(_clipper)) {
+  if (!CGAL::is_valid_polygon_mesh(_clipper,verbose)) {
     std::cerr << "clipper is invalid!" << std::endl;
   }
   // Parameters for isotropic remeshing
@@ -446,14 +450,14 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
 
   // make sure the meshes actually intersect. If they don't, just return mesh 1
   bool intersection =
-      CGAL::Polygon_mesh_processing::do_intersect(_tm, _clipper);
+      PMP::do_intersect(_tm, _clipper);
   if (intersection) {
     // Clip tm with clipper
     if (verbose) {
       std::cout << "Clipping tm with clipper." << std::endl;
     }
-    bool flag = CGAL::Polygon_mesh_processing::clip(_tm, _clipper);
-    CGAL::Polygon_mesh_processing::triangulate_faces(_tm);
+    bool flag = PMP::clip(_tm, _clipper);
+    PMP::triangulate_faces(_tm);
     if (verbose) {
       std::cout << "Clipping done." << std::endl;
     }
@@ -468,11 +472,11 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
         }
         if (verbose)
           std::cout << "  – stitching borders…" << std::endl;
-        CGAL::Polygon_mesh_processing::stitch_borders(
-            _tm, CGAL::parameters::maximum_distance(1e-4));
+        PMP::stitch_borders(
+            _tm);
         if (verbose)
           std::cout << "  – merging dup vertices…" << std::endl;
-        CGAL::Polygon_mesh_processing::
+        PMP::
             merge_duplicated_vertices_in_boundary_cycles(_tm);
         if (verbose)
           std::cout << "  – isotropic remeshing…" << std::endl;
@@ -493,13 +497,13 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
 
 #if CGAL_VERSION_NR >= 1060000000
         bool beautify_flag =
-            CGAL::Polygon_mesh_processing::remove_almost_degenerate_faces(
+            PMP::remove_almost_degenerate_faces(
                 faces(_tm), _tm,
                 CGAL::parameters::edge_is_constrained_map(
                     CGAL::make_boolean_property_map(protected_edges)));
 #else
         bool beautify_flag =
-            CGAL::Polygon_mesh_processing::remove_degenerate_faces(
+            PMP::remove_degenerate_faces(
                 faces(_tm), _tm,
                 CGAL::parameters::edge_is_constrained_map(
                     CGAL::make_boolean_property_map(protected_edges)));
@@ -539,13 +543,13 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
   // Load the meshes
   TriangleMesh _tm1 = load_mesh(tm1, false);
   TriangleMesh _tm2 = load_mesh(tm2, false);
-  CGAL::Polygon_mesh_processing::split_long_edges(edges(_tm1),
+  PMP::split_long_edges(edges(_tm1),
                                                   target_edge_length, _tm1);
-  CGAL::Polygon_mesh_processing::split_long_edges(edges(_tm2),
+  PMP::split_long_edges(edges(_tm2),
                                                   target_edge_length, _tm2);
 
   // Perform corefinement
-  CGAL::Polygon_mesh_processing::corefine(_tm1, _tm2);
+  PMP::corefine(_tm1, _tm2);
   // Find shared edges
   std::set<TriangleMesh::Edge_index> tm_1_shared_edges;
   std::set<TriangleMesh::Edge_index> tm_2_shared_edges;
@@ -580,7 +584,7 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
   tm_2_shared_edges.insert(boundary_edges2.begin(), boundary_edges2.end());
   // Refine the meshes
   // Perform isotropic remeshing on _tm
-  CGAL::Polygon_mesh_processing::isotropic_remeshing(
+  PMP::isotropic_remeshing(
       faces(_tm1), // Range of faces to remesh
       target_edge_length, _tm1,
       CGAL::parameters::number_of_iterations(number_of_iterations)
@@ -588,7 +592,7 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
               CGAL::make_boolean_property_map(tm_1_shared_edges))
           .relax_constraints(relax_constraints)
           .protect_constraints(protect_constraints));
-  CGAL::Polygon_mesh_processing::isotropic_remeshing(
+  PMP::isotropic_remeshing(
       faces(_tm2), // Range of faces to remesh
       target_edge_length, _tm2,
       CGAL::parameters::number_of_iterations(number_of_iterations)
