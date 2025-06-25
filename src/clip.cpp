@@ -129,14 +129,14 @@ void refine_mesh(TriangleMesh &mesh, bool split_long_edges, bool verbose,
   // ------------------------------------------------------------------
   // 2.  Abort when self‑intersections remain
   // ------------------------------------------------------------------
-  std::vector<std::pair<face_descriptor, face_descriptor>> overlaps;
-  PMP::self_intersections(mesh, std::back_inserter(overlaps));
-  if (!overlaps.empty()) {
-    if (verbose)
-      std::cout << "      --> " << overlaps.size()
-                << " self‑intersections – remesh skipped\n";
-    return;
-  }
+  // std::vector<std::pair<face_descriptor, face_descriptor>> overlaps;
+  // PMP::self_intersections(mesh, std::back_inserter(overlaps));
+  // if (!overlaps.empty()) {
+  //   if (verbose)
+  //     std::cout << "      --> " << overlaps.size()
+  //               << " self‑intersections – remesh skipped\n";
+  //   return;
+  // }
 
   // ------------------------------------------------------------------
   // 3.  “Tiny patch” bailout: only split long edges
@@ -313,7 +313,6 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper,
     }
     refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations,
                 protect_constraints, relax_constraints);
-    // refine_mesh(_clipper, true, verbose, target_edge_length,
     // number_of_iterations);
 
     if (verbose) {
@@ -440,8 +439,8 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
     }
     refine_mesh(_tm, true, verbose, target_edge_length, number_of_iterations,
                 protect_constraints, relax_constraints);
-    refine_mesh(_clipper, true, verbose, target_edge_length,
-                number_of_iterations, protect_constraints, relax_constraints);
+    // refine_mesh(_clipper, true, verbose, target_edge_length,
+    //             number_of_iterations, protect_constraints, relax_constraints);
 
     if (verbose) {
       std::cout << "Remeshing before clipping done." << std::endl;
