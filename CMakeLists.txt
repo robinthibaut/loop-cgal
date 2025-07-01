@@ -30,6 +30,7 @@ add_library(loop_cgal MODULE
     loop_cgal/bindings.cpp
     src/clip.cpp
     src/mesh.cpp
+    src/weld.cpp
     src/meshutils.cpp
     
 )

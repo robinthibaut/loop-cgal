@@ -1,4 +1,4 @@
-from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine_mesh
+from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine_mesh, weld_meshes
 from .loop_cgal import TriMesh as _TriMesh
 import pyvista as pv
 import numpy as np

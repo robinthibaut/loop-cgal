@@ -119,33 +119,7 @@ void TriMesh::remesh(bool split_long_edges, bool verbose,
         std::cout << "      ! mesh is not a valid polygon mesh\n";
 
     // ------------------------------------------------------------------
-    // 2.  Abort when self‑intersections remain
-    // ------------------------------------------------------------------
-    // std::vector<std::pair<face_descriptor, face_descriptor>> overlaps;
-    // PMP::self_intersections(mesh, std::back_inserter(overlaps));
-    // if (!overlaps.empty()) {
-    //   if (verbose)
-    //     std::cout << "      --> " << overlaps.size()
-    //               << " self‑intersections – remesh skipped\n";
-    //   return;
-    // }
-
-    // ------------------------------------------------------------------
-    // 3.  “Tiny patch” bailout: only split long edges
-    // ------------------------------------------------------------------
-    // const std::size_t n_faces = _mesh.number_of_faces();
-    // if (n_faces < 40)
-    // {
-    //     if (split_long_edges)
-    //         PMP::split_long_edges(edges(_mesh), target_edge_length, _mesh);
-    //     if (verbose)
-    //         std::cout << "      → tiny patch (" << n_faces
-    //                   << " faces) – isotropic remesh skipped\n";
-    //     return;
-    // }
-
-    // ------------------------------------------------------------------
-    // 4.  Normal isotropic remeshing loop
+    // 2.  Normal isotropic remeshing loop
     // ------------------------------------------------------------------
     // Convert _fixedEdges to a compatible property map
 

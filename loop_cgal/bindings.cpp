@@ -3,6 +3,7 @@
 
 #include "clip.h" // Include the API implementation
 #include "mesh.h"
+#include "weld.h"
 #include "numpymesh.h"
 
 namespace py = pybind11;
@@ -38,6 +39,16 @@ PYBIND11_MODULE(loop_cgal, m)
             py::arg("relax_constraints") = true,
             py::arg("protect_constraints") = false, py::arg("verbose") = false,
             "Corefine two meshes.");
+      m.def("weld_meshes", &weld_meshes,
+              py::arg("meshes"),
+              py::arg("target_edge_length")         = 10.0,
+              py::arg("duplicate_vertex_threshold") = 1e-6,
+              py::arg("area_threshold")             = 1e-6,
+              py::arg("remesh_iterations")          = 3,
+              py::arg("protect_constraints")        = false,
+              py::arg("relax_constraints")          = true,
+              py::arg("verbose")                    = false,
+              "Corefine & weld a list of surface meshes.");
       py::class_<NumpyMesh>(m, "NumpyMesh")
           .def(py::init<>())
           .def_readwrite("vertices", &NumpyMesh::vertices)
