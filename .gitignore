@@ -42,3 +42,5 @@ third_party/
 Thumbs.db
 loop_cgal/__pycache__/__init__.cpython-311.pyc
 build/*
+*.vtk
+*.ply
