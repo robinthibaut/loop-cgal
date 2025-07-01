@@ -1,7 +1,0 @@
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/loop_cgal.dir
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/edit_cache.dir
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/rebuild_cache.dir
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/list_install_components.dir
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/install.dir
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/install/local.dir
-/home/lgrose/dev/loop-cgal/build/CMakeFiles/install/strip.dir

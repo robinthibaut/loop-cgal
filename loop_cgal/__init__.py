@@ -1,7 +1,36 @@
 from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine_mesh
+from .loop_cgal import TriMesh as _TriMesh
 import pyvista as pv
 import numpy as np
 from typing import Tuple
+
+class TriMesh(_TriMesh):
+    """
+    A class for handling triangular meshes using CGAL.
+    
+    Inherits from the base TriMesh class and provides additional functionality.
+    """
+    def __init__(self, surface: pv.PolyData):
+        verts = np.array(surface.points).copy()
+        triangles = surface.faces.reshape(-1, 4)[:, 1:].copy()
+        super().__init__(verts, triangles)
+        
+    def to_pyvista(self, area_threshold: float = 1e-6,  # this is the area threshold for the faces, if the area is smaller than this it will be removed
+            duplicate_vertex_threshold: float = 1e-4,  # this is the threshold for duplicate vertices
+            verbose: bool = False) -> pv.PolyData:
+        """
+        Convert the TriMesh to a pyvista PolyData object.
+        
+        Returns
+        -------
+        pyvista.PolyData
+            The converted PolyData object.
+        """
+        np_mesh = self.save(area_threshold, duplicate_vertex_threshold, verbose)
+        vertices = np.array(np_mesh.vertices).copy()
+        triangles = np.array(np_mesh.triangles).copy()
+        return pv.PolyData.from_regular_faces(vertices, triangles)
+
 def clip_pyvista_polydata_with_plane(
     surface: pv.PolyData,
     plane_origin: np.ndarray,
@@ -27,7 +56,7 @@ def clip_pyvista_polydata_with_plane(
         The origin point of the clipping plane.
     plane_normal : np.ndarray
         The normal vector of the clipping plane.
-    target_edge_length : float, optional    
+    target_edge_length : float, optional
         The target edge length for the remeshing process, by default 10.0
     remesh_before_clipping : bool, optional
         Whether to remesh the surface before clipping, by default True
@@ -45,7 +74,7 @@ def clip_pyvista_polydata_with_plane(
     -------
     pyvista.PolyData
         The resulting clipped surface.
-    """ 
+    """
     surface = surface.triangulate()
     tm = NumpyMesh()
     tm.vertices = np.array(surface.points).copy()
@@ -53,7 +82,7 @@ def clip_pyvista_polydata_with_plane(
     plane = NumpyPlane()
     plane.origin = np.asarray(plane_origin, dtype=np.float64)
     plane.normal = np.asarray(plane_normal, dtype=np.float64)
-    
+
     mesh = clip_plane(
         tm,
         plane,
@@ -66,10 +95,10 @@ def clip_pyvista_polydata_with_plane(
         protect_constraints=protect_constraints,
         relax_constraints=relax_constraints,
         verbose=verbose,
-        
     )
-    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles
-)
+    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+
+
 def clip_pyvista_polydata(
     surface_1: pv.PolyData,
     surface_2: pv.PolyData,
@@ -118,9 +147,11 @@ def clip_pyvista_polydata(
         protect_constraints=protect_constraints,
         relax_constraints=relax_constraints,
         verbose=verbose,
-        
     )
-    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+    out = pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+
+    return out
+
 
 def corefine_pyvista_polydata(
     surface_1: pv.PolyData,
@@ -157,8 +188,18 @@ def corefine_pyvista_polydata(
     tm2.vertices = np.array(surface_2.points).copy()
     tm2.triangles = surface_2.faces.reshape(-1, 4)[:, 1:].copy()
 
-    tm1, tm2 = corefine_mesh(tm1, tm2, target_edge_length=target_edge_length, duplicate_vertex_threshold=duplicate_vertex_threshold, area_threshold=area_threshold, number_of_iterations=number_of_iterations, relax_constraints=relax_constraints, protect_constraints=protect_constraints, verbose=verbose)
+    tm1, tm2 = corefine_mesh(
+        tm1,
+        tm2,
+        target_edge_length=target_edge_length,
+        duplicate_vertex_threshold=duplicate_vertex_threshold,
+        area_threshold=area_threshold,
+        number_of_iterations=number_of_iterations,
+        relax_constraints=relax_constraints,
+        protect_constraints=protect_constraints,
+        verbose=verbose,
+    )
     return (
         pv.PolyData.from_regular_faces(tm1.vertices, tm1.triangles),
-        pv.PolyData.from_regular_faces(tm2.vertices, tm2.triangles)
+        pv.PolyData.from_regular_faces(tm2.vertices, tm2.triangles),
     )
