@@ -41,3 +41,4 @@ third_party/
 .DS_Store
 Thumbs.db
 loop_cgal/__pycache__/__init__.cpython-311.pyc
+build/*
