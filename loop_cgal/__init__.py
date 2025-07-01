@@ -1,8 +1,35 @@
 from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine_mesh
+from .loop_cgal import TriMesh as _TriMesh
 import pyvista as pv
 import numpy as np
 from typing import Tuple
 
+class TriMesh(_TriMesh):
+    """
+    A class for handling triangular meshes using CGAL.
+    
+    Inherits from the base TriMesh class and provides additional functionality.
+    """
+    def __init__(self, surface: pv.PolyData):
+        verts = np.array(surface.points).copy()
+        triangles = surface.faces.reshape(-1, 4)[:, 1:].copy()
+        super().__init__(verts, triangles)
+        
+    def to_pyvista(self, area_threshold: float = 1e-6,  # this is the area threshold for the faces, if the area is smaller than this it will be removed
+            duplicate_vertex_threshold: float = 1e-4,  # this is the threshold for duplicate vertices
+            verbose: bool = False) -> pv.PolyData:
+        """
+        Convert the TriMesh to a pyvista PolyData object.
+        
+        Returns
+        -------
+        pyvista.PolyData
+            The converted PolyData object.
+        """
+        np_mesh = self.save(area_threshold, duplicate_vertex_threshold, verbose)
+        vertices = np.array(np_mesh.vertices).copy()
+        triangles = np.array(np_mesh.triangles).copy()
+        return pv.PolyData.from_regular_faces(vertices, triangles)
 
 def clip_pyvista_polydata_with_plane(
     surface: pv.PolyData,
