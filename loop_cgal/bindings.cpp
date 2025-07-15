@@ -29,7 +29,6 @@ PYBIND11_MODULE(loop_cgal, m)
            py::arg("area_threshold") = 1e-6,
            py::arg("protect_constraints") = false,
            py::arg("relax_constraints") = true, py::arg("verbose") = false,
-
            "Clip a surface with a plane.");
      m.def("corefine_mesh", &corefine_mesh, py::arg("tm1"), py::arg("tm2"),
            py::arg("target_edge_length") = 10.0,
@@ -41,9 +40,7 @@ PYBIND11_MODULE(loop_cgal, m)
      py::class_<NumpyMesh>(m, "NumpyMesh")
          .def(py::init<>())
          .def_readwrite("vertices", &NumpyMesh::vertices)
-         .def_readwrite("triangles", &NumpyMesh::triangles)
-         .def_readwrite("properties", &NumpyMesh::properties,
-                        "Dictionary to hold vertex properties.");
+         .def_readwrite("triangles", &NumpyMesh::triangles);
      py::class_<NumpyPlane>(m, "NumpyPlane")
          .def(py::init<>())
          .def_readwrite("normal", &NumpyPlane::normal)
@@ -55,9 +52,6 @@ PYBIND11_MODULE(loop_cgal, m)
               py::arg("verbose") = false,
               py::arg("preserve_intersection") = false,
               py::arg("preserve_intersection_clipper") = false)
-         .def("add_vertex_property", &TriMesh::add_vertex_property,
-              py::arg("name"), py::arg("values"),
-              "Add a vertex property to the mesh.")
          .def("remesh", &TriMesh::remesh, py::arg("split_long_edges") = true,
               py::arg("verbose") = false,
               py::arg("target_edge_length") = 10.0,
