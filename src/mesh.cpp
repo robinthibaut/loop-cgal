@@ -79,6 +79,24 @@ void TriMesh::init(){
     _fixedEdges = collect_border_edges(_mesh);
     _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
 }
+
+
+void TriMesh::add_fixed_edges(const pybind11::array_t<int> &pairs) {
+    // Convert std::set<std::array<int, 2>> to std::set<TriangleMesh::Edge_index>
+    auto pairs_buf = pairs.unchecked<2>();
+    for (ssize_t i = 0; i < pairs_buf.shape(0); ++i) {
+        TriangleMesh::Edge_index e = _mesh.edge(_mesh.halfedge(TriangleMesh::Vertex_index(pairs_buf(i, 0)),
+                                                TriangleMesh::Vertex_index(pairs_buf(i, 1))));
+        _fixedEdges.insert(e);
+        //     if (e.is_valid()) {
+        //         _fixedEdges.insert(e);
+        //     } else {
+        //         std::cerr << "Warning: Edge (" << edge[0] << ", " << edge[1] << ") is not valid in the mesh." << std::endl;
+        //     }
+    }
+    // // Update the property map with the new fixed edges
+    _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
+}
 void TriMesh::remesh(bool split_long_edges, bool verbose,
                      double target_edge_length, int number_of_iterations,
                      bool protect_constraints, bool relax_constraints)
