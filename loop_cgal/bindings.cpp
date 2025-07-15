@@ -40,7 +40,7 @@ PYBIND11_MODULE(loop_cgal, m)
      py::class_<NumpyMesh>(m, "NumpyMesh")
          .def(py::init<>())
          .def_readwrite("vertices", &NumpyMesh::vertices)
-         .def_readwrite("triangles", &NumpyMesh::triangles);
+         .def_readwrite("triangles", &NumpyMesh::triangles); 
      py::class_<NumpyPlane>(m, "NumpyPlane")
          .def(py::init<>())
          .def_readwrite("normal", &NumpyPlane::normal)
