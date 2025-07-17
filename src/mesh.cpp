@@ -77,16 +77,39 @@ TriMesh::TriMesh(const pybind11::array_t<double> &vertices,
 }
 void TriMesh::init(){
     _fixedEdges = collect_border_edges(_mesh);
+    std::cout << "Found " << _fixedEdges.size() << " fixed edges." << std::endl;
     _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
 }
 
 
 void TriMesh::add_fixed_edges(const pybind11::array_t<int> &pairs) {
+    if (!CGAL::is_valid_polygon_mesh(_mesh))
+    {
+        std::cerr << "Mesh is not valid!" << std::endl;
+    }
     // Convert std::set<std::array<int, 2>> to std::set<TriangleMesh::Edge_index>
     auto pairs_buf = pairs.unchecked<2>();
+    
     for (ssize_t i = 0; i < pairs_buf.shape(0); ++i) {
-        TriangleMesh::Edge_index e = _mesh.edge(_mesh.halfedge(TriangleMesh::Vertex_index(pairs_buf(i, 0)),
-                                                TriangleMesh::Vertex_index(pairs_buf(i, 1))));
+        TriangleMesh::Vertex_index v0 = TriangleMesh::Vertex_index(pairs_buf(i, 1));
+        TriangleMesh::Vertex_index v1 = TriangleMesh::Vertex_index(pairs_buf(i, 0));
+        if (!_mesh.is_valid(v0) || !_mesh.is_valid(v1)) {
+            std::cerr << "Invalid vertex indices: (" << v0 << ", " << v1 << ")" << std::endl;
+            continue; // Skip invalid vertex pairs
+        }
+        TriangleMesh::Halfedge_index edge = _mesh.halfedge(TriangleMesh::Vertex_index(pairs_buf(i, 0)),
+                           TriangleMesh::Vertex_index(pairs_buf(i, 1)));
+        if (edge == TriangleMesh::null_halfedge())
+        {
+            std::cerr << "Half-edge is null for vertices (" << v1 << ", " << v0 << ")" << std::endl;
+            continue;
+        }
+        if (!_mesh.is_valid(edge)) {
+            std::cerr << "Invalid half-edge for vertices (" << v0 << ", " << v1 << ")" << std::endl;
+            continue; // Skip invalid edges
+        }
+        TriangleMesh::Edge_index e = _mesh.edge(edge);
+           
         _fixedEdges.insert(e);
         //     if (e.is_valid()) {
         //         _fixedEdges.insert(e);
