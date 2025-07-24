@@ -23,6 +23,7 @@ public:
             const std::vector<std::pair<double, double>> &vertices);
     TriMesh(const pybind11::array_t<double> &vertices,
             const pybind11::array_t<int> &triangles);
+    
     // Method to cut the mesh with another surface object
     void cutWithSurface(TriMesh &surface, bool verbose = false,
                         bool preserve_intersection = false,
@@ -32,16 +33,18 @@ public:
     void remesh(bool split_long_edges, bool verbose,
                 double target_edge_length, int number_of_iterations,
                 bool protect_constraints, bool relax_constraints);
-    TriangleMesh make_solid(bool preserve_constraints = false, double thickness = 0.1) const;
     void init();
     // Getters for mesh properties
     void reverseFaceOrientation();
     NumpyMesh save(double area_threshold,
                  double duplicate_vertex_threshold, bool verbose = false);
+    void add_fixed_edges(const pybind11::array_t<int> &pairs);
 
-private: std::set<TriangleMesh::Edge_index> _fixedEdges;
+    private: 
+    std::set<TriangleMesh::Edge_index> _fixedEdges;
     TriangleMesh _mesh; // The underlying CGAL surface mesh
     CGAL::Boolean_property_map<std::set<TriangleMesh::Edge_index>> _edge_is_constrained_map;
+
 };
 
 #endif // MESH_HANDLER_H

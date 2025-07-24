@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.4](https://github.com/Loop3D/loop-cgal/compare/v0.1.3...v0.1.4) (2025-07-17)
+
+
+### Bug Fixes
+
+* don't add  to fixed edges if the edge is invalid ([2d9bcde](https://github.com/Loop3D/loop-cgal/commit/2d9bcde2a564a785c28d009c930c769a55525584))
+
+## [0.1.3](https://github.com/Loop3D/loop-cgal/compare/v0.1.2...v0.1.3) (2025-07-15)
+
+
+### Bug Fixes
+
+* bump ([62a98b2](https://github.com/Loop3D/loop-cgal/commit/62a98b29b881237434433a5e7488496366418f79))
+
 ## [0.1.2](https://github.com/Loop3D/loop-cgal/compare/v0.1.1...v0.1.2) (2025-07-01)
 
 
