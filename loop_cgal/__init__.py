@@ -1,8 +1,12 @@
-from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine_mesh
-from .loop_cgal import TriMesh as _TriMesh
-import pyvista as pv
-import numpy as np
+from __future__ import annotations
+
 from typing import Tuple
+
+import numpy as np
+import pyvista as pv
+
+from .loop_cgal import NumpyMesh, NumpyPlane, clip_plane, clip_surface, corefine_mesh
+from .loop_cgal import TriMesh as _TriMesh
 
 class TriMesh(_TriMesh):
     """
@@ -148,9 +152,7 @@ def clip_pyvista_polydata(
         relax_constraints=relax_constraints,
         verbose=verbose,
     )
-    out = pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
-
-    return out
+    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
 
 
 def corefine_pyvista_polydata(
