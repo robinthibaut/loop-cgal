@@ -197,8 +197,8 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     if (verbose)
       std::cout << "Warning: No vertices to export, creating empty mesh\n";
     NumpyMesh result;
-    result.vertices = pybind11::array_t<double>({0, 3});
-    result.triangles = pybind11::array_t<int>({0, 3});
+    result.vertices = pybind11::array_t<double>(std::vector<int>{0, 3});
+    result.triangles = pybind11::array_t<int>(std::vector<int>{0, 3});
     return result;
   }
   
