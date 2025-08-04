@@ -33,10 +33,34 @@ TriangleMesh load_mesh(NumpyMesh mesh, bool verbose) {
     vertex_indices.push_back(tm.add_vertex(
         Point(vertices_buf(i, 0), vertices_buf(i, 1), vertices_buf(i, 2))));
   }
+
+  // Add faces with bounds checking
   for (ssize_t i = 0; i < triangles_buf.shape(0); ++i) {
-    tm.add_face(vertex_indices[triangles_buf(i, 0)],
-                vertex_indices[triangles_buf(i, 1)],
-                vertex_indices[triangles_buf(i, 2)]);
+    int v0 = triangles_buf(i, 0);
+    int v1 = triangles_buf(i, 1);
+    int v2 = triangles_buf(i, 2);
+
+    // Check that all vertex indices are valid
+    if (v0 < 0 || v0 >= vertex_indices.size() || v1 < 0 ||
+        v1 >= vertex_indices.size() || v2 < 0 || v2 >= vertex_indices.size()) {
+      if (verbose) {
+        std::cerr << "Warning: Triangle " << i
+                  << " has invalid vertex indices: (" << v0 << ", " << v1
+                  << ", " << v2 << "). Skipping." << std::endl;
+      }
+      continue;
+    }
+
+    // Check for degenerate triangles
+    if (v0 == v1 || v1 == v2 || v0 == v2) {
+      if (verbose) {
+        std::cerr << "Warning: Triangle " << i << " is degenerate: (" << v0
+                  << ", " << v1 << ", " << v2 << "). Skipping." << std::endl;
+      }
+      continue;
+    }
+
+    tm.add_face(vertex_indices[v0], vertex_indices[v1], vertex_indices[v2]);
   }
 
   if (verbose) {
@@ -409,9 +433,45 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
               double duplicate_vertex_threshold, double area_threshold,
               int number_of_iterations, bool relax_constraints,
               bool protect_constraints, bool verbose) {
+  // Validate input meshes
+  if (tm1.vertices.size() == 0 || tm1.triangles.size() == 0) {
+    if (verbose) {
+      std::cerr << "Error: tm1 is empty (vertices: " << tm1.vertices.size()
+                << ", triangles: " << tm1.triangles.size() << ")" << std::endl;
+    }
+    return {};
+  }
+  if (tm2.vertices.size() == 0 || tm2.triangles.size() == 0) {
+    if (verbose) {
+      std::cerr << "Error: tm2 is empty (vertices: " << tm2.vertices.size()
+                << ", triangles: " << tm2.triangles.size() << ")" << std::endl;
+    }
+    return {};
+  }
+
   // Load the meshes
-  TriangleMesh _tm1 = load_mesh(tm1, false);
-  TriangleMesh _tm2 = load_mesh(tm2, false);
+  TriangleMesh _tm1 = load_mesh(tm1, verbose);
+  TriangleMesh _tm2 = load_mesh(tm2, verbose);
+
+  // Validate loaded meshes
+  if (!CGAL::is_valid_polygon_mesh(_tm1, verbose)) {
+    std::cerr << "Error: _tm1 is not a valid polygon mesh" << std::endl;
+    return {};
+  }
+  if (!CGAL::is_valid_polygon_mesh(_tm2, verbose)) {
+    std::cerr << "Error: _tm2 is not a valid polygon mesh" << std::endl;
+    return {};
+  }
+
+  if (_tm1.number_of_vertices() == 0 || _tm1.number_of_faces() == 0) {
+    std::cerr << "Error: _tm1 loaded with no vertices or faces" << std::endl;
+    return {};
+  }
+  if (_tm2.number_of_vertices() == 0 || _tm2.number_of_faces() == 0) {
+    std::cerr << "Error: _tm2 loaded with no vertices or faces" << std::endl;
+    return {};
+  }
+
   PMP::split_long_edges(edges(_tm1), target_edge_length, _tm1);
   PMP::split_long_edges(edges(_tm2), target_edge_length, _tm2);
 
@@ -420,19 +480,61 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
   // Find shared edges
   std::set<TriangleMesh::Edge_index> tm_1_shared_edges;
   std::set<TriangleMesh::Edge_index> tm_2_shared_edges;
-  for (const auto &edge1 : _tm1.edges()) {
-    Point p1 = _tm1.point(CGAL::source(edge1, _tm1));
-    Point p2 = _tm1.point(CGAL::target(edge1, _tm1));
 
-    for (const auto &edge2 : _tm2.edges()) {
-      Point q1 = _tm2.point(CGAL::source(edge2, _tm2));
-      Point q2 = _tm2.point(CGAL::target(edge2, _tm2));
+  // Check if meshes have edges before iterating
+  if (_tm1.number_of_edges() > 0 && _tm2.number_of_edges() > 0) {
+    for (const auto &edge1 : _tm1.edges()) {
+      // Validate edge1 before using it
+      if (!_tm1.is_valid(edge1)) {
+        if (verbose)
+          std::cerr << "Warning: Invalid edge1 encountered, skipping"
+                    << std::endl;
+        continue;
+      }
 
-      // Check if the edges are identical (considering both orientations)
-      if ((p1 == q1 && p2 == q2) || (p1 == q2 && p2 == q1)) {
-        tm_1_shared_edges.insert(edge1);
-        tm_2_shared_edges.insert(edge2);
-        break;
+      auto v1 = CGAL::source(edge1, _tm1);
+      auto v2 = CGAL::target(edge1, _tm1);
+
+      // Validate vertices
+      if (!_tm1.is_valid(v1) || !_tm1.is_valid(v2)) {
+        if (verbose)
+          std::cerr << "Warning: Invalid vertices for edge1, skipping"
+                    << std::endl;
+        continue;
+      }
+
+      Point p1 = _tm1.point(v1);
+      Point p2 = _tm1.point(v2);
+
+      for (const auto &edge2 : _tm2.edges()) {
+        // Validate edge2 before using it
+        if (!_tm2.is_valid(edge2)) {
+          if (verbose)
+            std::cerr << "Warning: Invalid edge2 encountered, skipping"
+                      << std::endl;
+          continue;
+        }
+
+        auto v3 = CGAL::source(edge2, _tm2);
+        auto v4 = CGAL::target(edge2, _tm2);
+
+        // Validate vertices
+        if (!_tm2.is_valid(v3) || !_tm2.is_valid(v4)) {
+          if (verbose)
+            std::cerr << "Warning: Invalid vertices for edge2, skipping"
+                      << std::endl;
+          continue;
+        }
+
+        Point q1 = _tm2.point(v3);
+        Point q2 = _tm2.point(v4);
+
+        // Check if the edges are identical (considering both orientations)
+        if ((p1 == q1 && p2 == q2) || (p1 == q2 && p2 == q1)) {
+          tm_1_shared_edges.insert(edge1);
+          tm_2_shared_edges.insert(edge2);
+          break;
+        }
       }
     }
   }

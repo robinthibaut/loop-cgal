@@ -56,8 +56,27 @@ TriMesh::TriMesh(const pybind11::array_t<double> &vertices,
   }
 
   for (ssize_t i = 0; i < tris.shape(0); ++i) {
-    _mesh.add_face(vertex_indices[tris(i, 0)], vertex_indices[tris(i, 1)],
-                   vertex_indices[tris(i, 2)]);
+    int v0 = tris(i, 0);
+    int v1 = tris(i, 1);
+    int v2 = tris(i, 2);
+
+    // Check that all vertex indices are valid
+    if (v0 < 0 || v0 >= vertex_indices.size() || v1 < 0 ||
+        v1 >= vertex_indices.size() || v2 < 0 || v2 >= vertex_indices.size()) {
+      std::cerr << "Warning: Triangle " << i << " has invalid vertex indices: ("
+                << v0 << ", " << v1 << ", " << v2 << "). Skipping."
+                << std::endl;
+      continue;
+    }
+
+    // Check for degenerate triangles
+    if (v0 == v1 || v1 == v2 || v0 == v2) {
+      std::cerr << "Warning: Triangle " << i << " is degenerate: (" << v0
+                << ", " << v1 << ", " << v2 << "). Skipping." << std::endl;
+      continue;
+    }
+
+    _mesh.add_face(vertex_indices[v0], vertex_indices[v1], vertex_indices[v2]);
   }
 
   // No verbose logging in this constructor since verbose parameter is not
@@ -228,14 +247,57 @@ void TriMesh::cutWithSurface(TriMesh &clipper, bool verbose,
   if (verbose) {
     std::cout << "Cutting mesh with surface." << std::endl;
   }
+
+  // Validate input meshes
+  if (!CGAL::is_valid_polygon_mesh(_mesh, verbose)) {
+    std::cerr << "Error: Source mesh is invalid!" << std::endl;
+    return;
+  }
+
+  if (!CGAL::is_valid_polygon_mesh(clipper._mesh, verbose)) {
+    std::cerr << "Error: Clipper mesh is invalid!" << std::endl;
+    return;
+  }
+
+  if (_mesh.number_of_vertices() == 0 || _mesh.number_of_faces() == 0) {
+    std::cerr << "Error: Source mesh is empty!" << std::endl;
+    return;
+  }
+
+  if (clipper._mesh.number_of_vertices() == 0 ||
+      clipper._mesh.number_of_faces() == 0) {
+    std::cerr << "Error: Clipper mesh is empty!" << std::endl;
+    return;
+  }
+
   bool intersection = PMP::do_intersect(_mesh, clipper._mesh);
   if (intersection) {
     // Clip tm with clipper
     if (verbose) {
       std::cout << "Clipping tm with clipper." << std::endl;
     }
-    bool flag =
-        PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
+
+    try {
+      bool flag =
+          PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
+
+      if (!flag) {
+        std::cerr << "Warning: Clipping operation failed." << std::endl;
+      } else {
+        if (verbose) {
+          std::cout << "Clipping successful. Result has "
+                    << _mesh.number_of_vertices() << " vertices and "
+                    << _mesh.number_of_faces() << " faces." << std::endl;
+        }
+      }
+    } catch (const std::exception &e) {
+      std::cerr << "Error during clipping: " << e.what() << std::endl;
+    }
+  } else {
+    if (verbose) {
+      std::cout << "Meshes do not intersect. No clipping performed."
+                << std::endl;
+    }
   }
 }
 
