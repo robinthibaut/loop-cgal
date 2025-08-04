@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import loop_cgal
 import numpy as np
+
+
 def test():
 
     X,Y,Z = np.meshgrid(np.linspace(0, 1, 10),

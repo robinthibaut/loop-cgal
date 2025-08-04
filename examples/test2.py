@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import loop_cgal
 import numpy as np
 

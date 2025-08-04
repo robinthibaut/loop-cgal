@@ -1,5 +1,6 @@
 #include "meshutils.h"
 #include "mesh.h"
+#include <cstring>
 
 std::set<TriangleMesh::Edge_index>
 collect_border_edges(const TriangleMesh &tm) {
@@ -233,22 +234,57 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     }
   }
 
-  pybind11::array_t<double> vertices_array(
-      {static_cast<int>(vertices.size()), 3});
+  // Create arrays with explicit memory alignment and initialization
+  pybind11::array_t<double> vertices_array = pybind11::array_t<double>::ensure(
+      pybind11::array_t<double>({static_cast<int>(vertices.size()), 3}));
   auto vbuf = vertices_array.mutable_unchecked<2>();
+  
+  // Zero-initialize the array to prevent reading uninitialized memory
+  std::memset(vertices_array.mutable_data(), 0, 
+              vertices.size() * 3 * sizeof(double));
+  
   for (size_t i = 0; i < vertices.size(); ++i) {
-    vbuf(i, 0) = vertices[i][0];
-    vbuf(i, 1) = vertices[i][1];
-    vbuf(i, 2) = vertices[i][2];
+    // Double-check finite values before assignment
+    double x = vertices[i][0];
+    double y = vertices[i][1]; 
+    double z = vertices[i][2];
+    
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) {
+      if (verbose)
+        std::cout << "Warning: Non-finite vertex " << i << " (" << x << ", " << y << ", " << z << "), using zero\n";
+      x = y = z = 0.0;
+    }
+    
+    vbuf(i, 0) = x;
+    vbuf(i, 1) = y;
+    vbuf(i, 2) = z;
   }
 
-  pybind11::array_t<int> triangles_array(
-      {static_cast<int>(triangles.size()), 3});
+  pybind11::array_t<int> triangles_array = pybind11::array_t<int>::ensure(
+      pybind11::array_t<int>({static_cast<int>(triangles.size()), 3}));
   auto tbuf = triangles_array.mutable_unchecked<2>();
+  
+  // Zero-initialize the array
+  std::memset(triangles_array.mutable_data(), 0, 
+              triangles.size() * 3 * sizeof(int));
+  
   for (size_t i = 0; i < triangles.size(); ++i) {
-    tbuf(i, 0) = triangles[i][0];
-    tbuf(i, 1) = triangles[i][1];
-    tbuf(i, 2) = triangles[i][2];
+    // Additional bounds checking
+    int v0 = triangles[i][0];
+    int v1 = triangles[i][1];
+    int v2 = triangles[i][2];
+    
+    if (v0 >= static_cast<int>(vertices.size()) || v1 >= static_cast<int>(vertices.size()) || 
+        v2 >= static_cast<int>(vertices.size()) || v0 < 0 || v1 < 0 || v2 < 0) {
+      if (verbose)
+        std::cout << "Error: Triangle " << i << " has invalid indices (" << v0 << ", " << v1 << ", " << v2 << ")\n";
+      // Skip this triangle by continuing, array remains zero-initialized
+      continue;
+    }
+    
+    tbuf(i, 0) = v0;
+    tbuf(i, 1) = v1;
+    tbuf(i, 2) = v2;
   }
 
   // —‑‑‑‑‑ 4.  Package & return ------------------------------------------

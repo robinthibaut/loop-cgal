@@ -292,8 +292,23 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper,
     std::cout << "Clipping done." << std::endl;
   }
 
-  // store the result in a numpymesh object for sending back to Python
+  // Final validation before export to prevent crashes
+  if (!CGAL::is_valid_polygon_mesh(_tm, verbose)) {
+    std::cerr << "Error: Final mesh is invalid after plane clipping operations" << std::endl;
+    if (verbose) {
+      std::cout << "Attempting to repair mesh..." << std::endl;
+      PMP::remove_isolated_vertices(_tm);
+      PMP::remove_degenerate_faces(_tm);
+      if (!CGAL::is_valid_polygon_mesh(_tm, verbose)) {
+        std::cerr << "Error: Failed to repair mesh, returning empty result" << std::endl;
+        return NumpyMesh{}; // Return empty mesh to prevent crash
+      }
+    } else {
+      return NumpyMesh{}; // Return empty mesh to prevent crash
+    }
+  }
 
+  // store the result in a numpymesh object for sending back to Python
   NumpyMesh result =
       export_mesh(_tm, area_threshold, duplicate_vertex_threshold, verbose);
   if (verbose) {
@@ -416,8 +431,23 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
     std::cout << "Clipping done." << std::endl;
   }
 
-  // store the result in a numpymesh object for sending back to Python
+  // Final validation before export to prevent crashes
+  if (!CGAL::is_valid_polygon_mesh(_tm, verbose)) {
+    std::cerr << "Error: Final mesh is invalid after surface clipping operations" << std::endl;
+    if (verbose) {
+      std::cout << "Attempting to repair mesh..." << std::endl;
+      PMP::remove_isolated_vertices(_tm);
+      PMP::remove_degenerate_faces(_tm);
+      if (!CGAL::is_valid_polygon_mesh(_tm, verbose)) {
+        std::cerr << "Error: Failed to repair mesh, returning empty result" << std::endl;
+        return NumpyMesh{}; // Return empty mesh to prevent crash
+      }
+    } else {
+      return NumpyMesh{}; // Return empty mesh to prevent crash
+    }
+  }
 
+  // store the result in a numpymesh object for sending back to Python
   NumpyMesh result =
       export_mesh(_tm, area_threshold, duplicate_vertex_threshold, verbose);
   if (verbose) {
