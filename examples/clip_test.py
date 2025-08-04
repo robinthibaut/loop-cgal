@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import loop_cgal
 import numpy as np
 import pyvista as pv
 from LoopStructural.datatypes import BoundingBox
+
+
 def test():
     bb = BoundingBox(np.zeros(3), np.ones(3))
     grid = bb.structured_grid().vtk()

@@ -188,7 +188,9 @@ class TriMesh(_TriMesh):
         np_mesh = self.save(area_threshold, duplicate_vertex_threshold, verbose)
         vertices = np.array(np_mesh.vertices).copy()
         triangles = np.array(np_mesh.triangles).copy()
-        return pv.PolyData.from_regular_faces(vertices, triangles)
+        # Create faces array with padding for PyVista
+        faces_for_pv = np.column_stack([np.full(len(triangles), 3), triangles])
+        return pv.PolyData(vertices, faces_for_pv.flatten())
 
 def clip_pyvista_polydata_with_plane(
     surface: pv.PolyData,
@@ -266,7 +268,36 @@ def clip_pyvista_polydata_with_plane(
         relax_constraints=relax_constraints,
         verbose=verbose,
     )
-    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+    
+    # Additional safety checks before creating PyVista object
+    vertices = np.array(mesh.vertices, dtype=np.float64)
+    triangles = np.array(mesh.triangles, dtype=np.int32)
+    
+    # Validate output data integrity
+    if vertices.size == 0:
+        raise RuntimeError("Clipping operation resulted in empty mesh (no vertices)")
+    
+    if triangles.size == 0:
+        if verbose:
+            print("Warning: Clipping resulted in no triangles, returning vertex-only mesh")
+        # Create a minimal valid mesh structure
+        return pv.PolyData(vertices)
+    
+    if not np.isfinite(vertices).all():
+        raise RuntimeError("Clipping operation produced invalid vertex coordinates")
+    
+    if triangles.min() < 0 or triangles.max() >= len(vertices):
+        raise RuntimeError("Clipping operation produced invalid triangle indices")
+    
+    try:
+        # Create faces array with padding for PyVista
+        faces_for_pv = np.column_stack([np.full(len(triangles), 3), triangles])
+        result = pv.PolyData(vertices, faces_for_pv.flatten())
+        # Force VTK pipeline update to catch issues early
+        result.compute_normals(inplace=True)
+        return result
+    except Exception as e:
+        raise RuntimeError(f"Failed to create PyVista PolyData from clipped mesh: {e}") from e
 
 
 def clip_pyvista_polydata(
@@ -329,7 +360,36 @@ def clip_pyvista_polydata(
         relax_constraints=relax_constraints,
         verbose=verbose,
     )
-    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
+    
+    # Additional safety checks before creating PyVista object
+    vertices = np.array(mesh.vertices, dtype=np.float64)
+    triangles = np.array(mesh.triangles, dtype=np.int32)
+    
+    # Validate output data integrity
+    if vertices.size == 0:
+        raise RuntimeError("Clipping operation resulted in empty mesh (no vertices)")
+    
+    if triangles.size == 0:
+        if verbose:
+            print("Warning: Clipping resulted in no triangles, returning vertex-only mesh")
+        # Create a minimal valid mesh structure
+        return pv.PolyData(vertices)
+    
+    if not np.isfinite(vertices).all():
+        raise RuntimeError("Clipping operation produced invalid vertex coordinates")
+    
+    if triangles.min() < 0 or triangles.max() >= len(vertices):
+        raise RuntimeError("Clipping operation produced invalid triangle indices")
+    
+    try:
+        # Create faces array with padding for PyVista
+        faces_for_pv = np.column_stack([np.full(len(triangles), 3), triangles])
+        result = pv.PolyData(vertices, faces_for_pv.flatten())
+        # Force VTK pipeline update to catch issues early
+        result.compute_normals(inplace=True)
+        return result
+    except Exception as e:
+        raise RuntimeError(f"Failed to create PyVista PolyData from clipped mesh: {e}") from e
 
 
 def corefine_pyvista_polydata(
@@ -392,7 +452,36 @@ def corefine_pyvista_polydata(
         protect_constraints=protect_constraints,
         verbose=verbose,
     )
+    # Additional safety checks for both meshes
+    def safe_create_polydata(mesh, mesh_name):
+        vertices = np.array(mesh.vertices, dtype=np.float64)
+        triangles = np.array(mesh.triangles, dtype=np.int32)
+        
+        if vertices.size == 0:
+            raise RuntimeError(f"Corefining operation resulted in empty {mesh_name} (no vertices)")
+        
+        if triangles.size == 0:
+            if verbose:
+                print(f"Warning: Corefining resulted in no triangles for {mesh_name}, returning vertex-only mesh")
+            return pv.PolyData(vertices)
+        
+        if not np.isfinite(vertices).all():
+            raise RuntimeError(f"Corefining operation produced invalid vertex coordinates in {mesh_name}")
+        
+        if triangles.min() < 0 or triangles.max() >= len(vertices):
+            raise RuntimeError(f"Corefining operation produced invalid triangle indices in {mesh_name}")
+        
+        try:
+            # Create faces array with padding for PyVista
+            faces_for_pv = np.column_stack([np.full(len(triangles), 3), triangles])
+            result = pv.PolyData(vertices, faces_for_pv.flatten())
+            # Force VTK pipeline update to catch issues early
+            result.compute_normals(inplace=True)
+            return result
+        except Exception as e:
+            raise RuntimeError(f"Failed to create PyVista PolyData for {mesh_name}: {e}") from e
+    
     return (
-        pv.PolyData.from_regular_faces(tm1.vertices, tm1.triangles),
-        pv.PolyData.from_regular_faces(tm2.vertices, tm2.triangles),
+        safe_create_polydata(tm1, "mesh 1"),
+        safe_create_polydata(tm2, "mesh 2"),
     )
