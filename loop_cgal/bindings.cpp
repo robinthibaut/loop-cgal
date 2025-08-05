@@ -1,8 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "clip.h" // Include the API implementation
-#include "mesh.h"
+#include "mesh.h" // include trimesh class with clipping and remeshing methods
 #include "numpymesh.h"
 #include "globals.h" // Include the global verbose flag
 namespace py = pybind11;
