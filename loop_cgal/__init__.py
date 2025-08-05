@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import numpy as np
+from scipy import sparse as sp
 import pyvista as pv
 
 from ._loop_cgal import TriMesh as _TriMesh
@@ -77,13 +78,25 @@ class TriMesh(_TriMesh):
         
         if faces.max() > max_vertex_index:
             raise ValueError(f"Surface triangle indices exceed vertex count (max index: {faces.max()}, vertex count: {verts.shape[0]})")
-        
         # Check for degenerate triangles
-        _, counts = np.unique(faces, axis=1, return_counts=True)
-        if np.any(counts != 3):
-            raise ValueError("Surface has degenerate triangles (not all triangles have 3 unique vertices)")
+        # build a ntris x nverts matrix 
+        # populate with true for vertex in each triangle
+        # sum rows and if not equal to 3 then it is degenerate
+        face_idx = np.arange(faces.shape[0])
+        face_idx = np.tile(face_idx, (3,1)).T.flatten()
+        faces_flat = faces.flatten()
+        m = sp.coo_matrix(
+            (np.ones(faces_flat.shape[0]), (faces_flat, face_idx)),
+            shape=(verts.shape[0], faces.shape[0]),
+            dtype=bool,
+        )
+        # coo duplicates entries so just make sure its boolean
+        m = m > 0
+        if not np.all(m.sum(axis=0) == 3):
+            degen_idx = np.where(m.sum(axis=0) != 3)[1]
+            raise ValueError(f"Surface contains degenerate triangles: {degen_idx} (each triangle must have exactly 3 vertices)")
         
-        
+
         super().__init__(verts, faces)
         
     def to_pyvista(self, area_threshold: float = 1e-6,  # this is the area threshold for the faces, if the area is smaller than this it will be removed
