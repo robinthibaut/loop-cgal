@@ -92,7 +92,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     
     // Validate vertex coordinates
     if (!std::isfinite(p.x()) || !std::isfinite(p.y()) || !std::isfinite(p.z())) {
-      if (verbose)
+      if (LoopCGAL::verbose)
         std::cout << "Warning: Non-finite vertex coordinates, skipping vertex\n";
       continue;
     }
@@ -103,7 +103,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     double z_scaled = p.z() * inv;
     
     if (!std::isfinite(x_scaled) || !std::isfinite(y_scaled) || !std::isfinite(z_scaled)) {
-      if (verbose)
+      if (LoopCGAL::verbose)
         std::cout << "Warning: Invalid scaled coordinates, skipping vertex\n";
       continue;
     }
@@ -139,7 +139,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     
     for (auto he : CGAL::halfedges_around_face(tm.halfedge(f), tm)) {
       if (k >= 3) {  // Safety check for face with more than 3 vertices
-        if (verbose)
+        if (LoopCGAL::verbose)
           std::cout << "Warning: Face has more than 3 vertices, skipping\n";
         valid_face = false;
         break;
@@ -148,7 +148,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
       VIndex target_vertex = CGAL::target(he, tm);
       auto it = vertex_index_map.find(target_vertex);
       if (it == vertex_index_map.end()) {
-        if (verbose)
+        if (LoopCGAL::verbose)
           std::cout << "Warning: Vertex not found in index map, skipping face\n";
         valid_face = false;
         break;
@@ -156,7 +156,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
       
       int vertex_idx = it->second;
       if (vertex_idx < 0 || vertex_idx >= static_cast<int>(vertices.size())) {
-        if (verbose)
+        if (LoopCGAL::verbose)
           std::cout << "Warning: Invalid vertex index " << vertex_idx << ", skipping face\n";
         valid_face = false;
         break;
@@ -166,14 +166,14 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     }
     
     if (!valid_face || k != 3) {
-      if (verbose && k != 3)
+      if (LoopCGAL::verbose && k != 3)
         std::cout << "Warning: Face does not have exactly 3 vertices (" << k << "), skipping\n";
       continue;
     }
     
     // Check for degenerate triangles (duplicate vertices)
     if (tri[0] == tri[1] || tri[1] == tri[2] || tri[0] == tri[2]) {
-      if (verbose)
+      if (LoopCGAL::verbose)
         std::cout << "Warning: Degenerate triangle with duplicate vertices (" 
                   << tri[0] << ", " << tri[1] << ", " << tri[2] << "), skipping\n";
       continue;
@@ -194,7 +194,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
   // —‑‑‑‑‑ 3.  Convert to NumPy arrays -----------------------------------
   // Safety check for empty data
   if (vertices.empty()) {
-    if (verbose)
+    if (LoopCGAL::verbose)
       std::cout << "Warning: No vertices to export, creating empty mesh\n";
     NumpyMesh result;
     result.vertices = pybind11::array_t<double>(std::vector<int>{0, 3});
@@ -203,7 +203,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
   }
   
   if (triangles.empty()) {
-    if (verbose)
+    if (LoopCGAL::verbose)
       std::cout << "Warning: No triangles to export, creating vertex-only mesh\n";
   }
   
@@ -211,7 +211,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
   for (size_t i = 0; i < vertices.size(); ++i) {
     for (int j = 0; j < 3; ++j) {
       if (!std::isfinite(vertices[i][j])) {
-        if (verbose)
+        if (LoopCGAL::verbose)
           std::cout << "Warning: Non-finite vertex coordinate at vertex " << i << ", component " << j << "\n";
         // Replace with zero to prevent crash
         vertices[i][j] = 0.0;
@@ -223,7 +223,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
   for (size_t i = 0; i < triangles.size(); ++i) {
     for (int j = 0; j < 3; ++j) {
       if (triangles[i][j] < 0 || triangles[i][j] >= static_cast<int>(vertices.size())) {
-        if (verbose)
+        if (LoopCGAL::verbose)
           std::cout << "Error: Invalid triangle index " << triangles[i][j] 
                     << " at triangle " << i << ", removing triangle\n";
         triangles.erase(triangles.begin() + i);

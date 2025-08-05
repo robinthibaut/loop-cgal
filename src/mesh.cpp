@@ -84,6 +84,7 @@ TriMesh::TriMesh(const pybind11::array_t<double> &vertices,
     }
 
     _mesh.add_face(vertex_indices[v0], vertex_indices[v1], vertex_indices[v2]);
+  }
   for (ssize_t i = 0; i < tris.shape(0); ++i)
   {
     _mesh.add_face(vertex_indices[tris(i, 0)], vertex_indices[tris(i, 1)],
@@ -289,12 +290,12 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
   }
 
   // Validate input meshes
-  if (!CGAL::is_valid_polygon_mesh(_mesh, verbose)) {
+  if (!CGAL::is_valid_polygon_mesh(_mesh, LoopCGAL::verbose)) {
     std::cerr << "Error: Source mesh is invalid!" << std::endl;
     return;
   }
 
-  if (!CGAL::is_valid_polygon_mesh(clipper._mesh, verbose)) {
+  if (!CGAL::is_valid_polygon_mesh(clipper._mesh, LoopCGAL::verbose)) {
     std::cerr << "Error: Clipper mesh is invalid!" << std::endl;
     return;
   }
@@ -326,7 +327,7 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
       if (!flag) {
         std::cerr << "Warning: Clipping operation failed." << std::endl;
       } else {
-        if (verbose) {
+        if (LoopCGAL::verbose) {
           std::cout << "Clipping successful. Result has "
                     << _mesh.number_of_vertices() << " vertices and "
                     << _mesh.number_of_faces() << " faces." << std::endl;
@@ -336,7 +337,7 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
       std::cerr << "Error during clipping: " << e.what() << std::endl;
     }
   } else {
-    if (verbose) {
+    if (LoopCGAL::verbose) {
       std::cout << "Meshes do not intersect. No clipping performed."
                 << std::endl;
     }
