@@ -10,6 +10,10 @@ PYBIND11_MODULE(_loop_cgal, m)
 {
      m.attr("verbose") = &LoopCGAL::verbose; // Expose the global verbose flag
      m.def("set_verbose", &LoopCGAL::set_verbose, "Set the verbose flag");
+     py::class_<NumpyMesh>(m, "NumpyMesh")
+         .def(py::init<>())
+         .def_readwrite("vertices", &NumpyMesh::vertices)
+         .def_readwrite("triangles", &NumpyMesh::triangles);
      py::class_<TriMesh>(m, "TriMesh")
          .def(py::init<const pybind11::array_t<double> &, const pybind11::array_t<int> &>(),
               py::arg("vertices"), py::arg("triangles"))
