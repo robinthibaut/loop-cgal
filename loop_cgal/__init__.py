@@ -1,9 +1,14 @@
-from .loop_cgal import clip_surface, NumpyMesh, NumpyPlane, clip_plane, corefine_mesh
-from .loop_cgal import TriMesh as _TriMesh
-import pyvista as pv
-import numpy as np
+from __future__ import annotations
+
 from typing import Tuple
 
+import numpy as np
+import pyvista as pv
+
+from ._loop_cgal import NumpyMesh, NumpyPlane, clip_plane, clip_surface, corefine_mesh
+from ._loop_cgal import TriMesh as _TriMesh
+from ._loop_cgal import verbose
+from ._loop_cgal import set_verbose as set_verbose
 class TriMesh(_TriMesh):
     """
     A class for handling triangular meshes using CGAL.
@@ -17,7 +22,7 @@ class TriMesh(_TriMesh):
         
     def to_pyvista(self, area_threshold: float = 1e-6,  # this is the area threshold for the faces, if the area is smaller than this it will be removed
             duplicate_vertex_threshold: float = 1e-4,  # this is the threshold for duplicate vertices
-            verbose: bool = False) -> pv.PolyData:
+            ) -> pv.PolyData:
         """
         Convert the TriMesh to a pyvista PolyData object.
         
@@ -26,7 +31,7 @@ class TriMesh(_TriMesh):
         pyvista.PolyData
             The converted PolyData object.
         """
-        np_mesh = self.save(area_threshold, duplicate_vertex_threshold, verbose)
+        np_mesh = self.save(area_threshold, duplicate_vertex_threshold)
         vertices = np.array(np_mesh.vertices).copy()
         triangles = np.array(np_mesh.triangles).copy()
         return pv.PolyData.from_regular_faces(vertices, triangles)
@@ -43,7 +48,6 @@ def clip_pyvista_polydata_with_plane(
     area_threshold: float = 0.0001,
     protect_constraints: bool = False,
     relax_constraints: bool = True,
-    verbose: bool = False,
 ) -> pv.PolyData:
     """
     Clip a pyvista PolyData object with a plane using the CGAL library.
@@ -68,8 +72,7 @@ def clip_pyvista_polydata_with_plane(
         The threshold for merging duplicate vertices, by default 0.001
     area_threshold : float, optional
         The area threshold for removing small faces, by default 0.0001
-    verbose : bool, optional
-        Whether to print verbose output, by default False
+    
     Returns
     -------
     pyvista.PolyData
@@ -94,7 +97,6 @@ def clip_pyvista_polydata_with_plane(
         area_threshold=area_threshold,
         protect_constraints=protect_constraints,
         relax_constraints=relax_constraints,
-        verbose=verbose,
     )
     return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
 
@@ -110,7 +112,6 @@ def clip_pyvista_polydata(
     area_threshold: float = 0.0001,
     protect_constraints: bool = False,
     relax_constraints: bool = True,
-    verbose: bool = False,
 ) -> pv.PolyData:
     """
     Clip two pyvista PolyData objects using the CGAL library.
@@ -146,11 +147,8 @@ def clip_pyvista_polydata(
         area_threshold=area_threshold,
         protect_constraints=protect_constraints,
         relax_constraints=relax_constraints,
-        verbose=verbose,
     )
-    out = pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
-
-    return out
+    return pv.PolyData.from_regular_faces(mesh.vertices, mesh.triangles)
 
 
 def corefine_pyvista_polydata(
@@ -162,7 +160,6 @@ def corefine_pyvista_polydata(
     number_of_iterations: int = 10,
     protect_constraints: bool = True,
     relax_constraints: bool = True,
-    verbose: bool = False,
 ) -> Tuple[pv.PolyData, pv.PolyData]:
     """
     Corefine two pyvista PolyData objects using the CGAL library.
@@ -197,7 +194,6 @@ def corefine_pyvista_polydata(
         number_of_iterations=number_of_iterations,
         relax_constraints=relax_constraints,
         protect_constraints=protect_constraints,
-        verbose=verbose,
     )
     return (
         pv.PolyData.from_regular_faces(tm1.vertices, tm1.triangles),
