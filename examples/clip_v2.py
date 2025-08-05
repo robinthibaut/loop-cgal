@@ -2,10 +2,11 @@ import loop_cgal
 import numpy as np
 import pyvista as pv
 from LoopStructural.datatypes import BoundingBox
+loop_cgal.set_verbose(True)
+print(loop_cgal.verbose)  # Should print True
 def test():
     bb = BoundingBox(np.zeros(3), np.ones(3))
     grid = bb.structured_grid().vtk()
-    print(grid)
     grid["scalars"] = grid.points[:,0]
     surface = grid.contour([.5])
     surface_1_tri = surface.faces.reshape(-1, 4)[:, 1:].copy()
@@ -18,12 +19,9 @@ def test():
     # surface_cgal.remesh(target_edge_length=0.02, verbose=True,protect_constraints=True, relax_constraints=False, number_of_iterations=1,split_long_edges=False)
     surface_cgal_2 = loop_cgal.TriMesh(surface_2)
     # surface_cgal_2.remesh(target_edge_length=0.02, verbose=True,protect_constraints=True, relax_constraints=False, number_of_iterations=1,split_long_edges=False)
-    print("clipping 1")
-    surface_cgal.cut_with_surface(surface_cgal_2,verbose=True, preserve_intersection=False, preserve_intersection_clipper=False)
+    surface_cgal.cut_with_surface(surface_cgal_2, preserve_intersection=False, preserve_intersection_clipper=False)
 
-    print("reverse face orientation")
     surface_cgal_2.reverse_face_orientation()
-    print("clipping 3")
     surface_cgal_3 = loop_cgal.TriMesh(surface)
     # surface_cgal_3.remesh(target_edge_length=0.02, verbose=True,protect_constraints=True, relax_constraints=False, number_of_iterations=1,split_long_edges=False)
     surface_cgal_3.cut_with_surface(surface_cgal_2)

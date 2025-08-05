@@ -295,7 +295,7 @@ NumpyMesh clip_plane(NumpyMesh tm, NumpyPlane clipper,
   // store the result in a numpymesh object for sending back to Python
 
   NumpyMesh result =
-      export_mesh(_tm, area_threshold, duplicate_vertex_threshold, verbose);
+      export_mesh(_tm, area_threshold, duplicate_vertex_threshold);
   if (verbose) {
     std::cout << "Exported clipped mesh with " << result.vertices.shape(0)
               << " vertices and " << result.triangles.shape(0) << " triangles."
@@ -323,7 +323,9 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
   if (!CGAL::is_valid_polygon_mesh(_tm, verbose)) {
     std::cerr << "tm is invalid!" << std::endl;
     if (verbose)
+    {
       CGAL::is_valid_polygon_mesh(_tm, true);
+    }
   }
   if (!CGAL::is_valid_polygon_mesh(_clipper, verbose)) {
     std::cerr << "clipper is invalid!" << std::endl;
@@ -410,7 +412,9 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
     }
   } else {
     if (verbose)
+    {
       std::cout << "Meshes do not intersect. Returning tm." << std::endl;
+    }
   }
   if (verbose) {
     std::cout << "Clipping done." << std::endl;
@@ -419,7 +423,7 @@ NumpyMesh clip_surface(NumpyMesh tm, NumpyMesh clipper,
   // store the result in a numpymesh object for sending back to Python
 
   NumpyMesh result =
-      export_mesh(_tm, area_threshold, duplicate_vertex_threshold, verbose);
+      export_mesh(_tm, area_threshold, duplicate_vertex_threshold);
   if (verbose) {
     std::cout << "Exported clipped mesh with " << result.vertices.shape(0)
               << " vertices and " << result.triangles.shape(0) << " triangles."
@@ -539,10 +543,11 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
     }
   }
   if (verbose)
+  {
     std::cout << "Found " << tm_1_shared_edges.size()
               << " shared edges in tm1 and " << tm_2_shared_edges.size()
               << " shared edges in tm2." << std::endl;
-
+  }
   // std::set<TriangleMesh::Edge_index> constrained_edges;
 
   std::set<TriangleMesh::Edge_index> boundary_edges =
@@ -572,9 +577,10 @@ corefine_mesh(NumpyMesh tm1, NumpyMesh tm2, double target_edge_length,
           .protect_constraints(protect_constraints));
 
   if (verbose)
+  {
     std::cout << "Corefinement done." << std::endl;
-
+  }
   return {
-      export_mesh(_tm1, area_threshold, duplicate_vertex_threshold, verbose),
-      export_mesh(_tm2, area_threshold, duplicate_vertex_threshold, verbose)};
+      export_mesh(_tm1, area_threshold, duplicate_vertex_threshold),
+      export_mesh(_tm2, area_threshold, duplicate_vertex_threshold)};
 }
