@@ -26,17 +26,18 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 find_package(pybind11 REQUIRED)
 
 # Add the Python module
-add_library(loop_cgal MODULE
+add_library(_loop_cgal MODULE
     loop_cgal/bindings.cpp
     src/clip.cpp
     src/mesh.cpp
     src/meshutils.cpp
+    src/globals.cpp
     
 )
-target_link_libraries(loop_cgal PRIVATE pybind11::module CGAL::CGAL)
-target_include_directories(loop_cgal PRIVATE ${CMAKE_SOURCE_DIR}/src)
-set_target_properties(loop_cgal PROPERTIES PREFIX "" SUFFIX ".so")
+target_link_libraries(_loop_cgal PRIVATE pybind11::module CGAL::CGAL)
+target_include_directories(_loop_cgal PRIVATE ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(_loop_cgal PROPERTIES PREFIX "" SUFFIX ".so")
 # Install the Python module to the correct location
-install(TARGETS loop_cgal
+install(TARGETS _loop_cgal
     LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/loop_cgal
 )

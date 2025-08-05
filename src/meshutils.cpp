@@ -1,6 +1,6 @@
 #include "meshutils.h"
 #include "mesh.h"
-
+#include "globals.h"
 std::set<TriangleMesh::Edge_index>
 collect_border_edges(const TriangleMesh &tm) {
   std::set<TriangleMesh::Edge_index> border_edges;
@@ -35,7 +35,7 @@ double calculate_triangle_area(const std::array<double, 3> &v1,
 // Efficient export: linear‑time duplicate detection via quantised hash grid
 // ---------------------------------------------------------------------------
 NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
-                      double duplicate_vertex_threshold, bool verbose) {
+                      double duplicate_vertex_threshold) {
   using VIndex = TriangleMesh::Vertex_index;
 
   std::vector<std::array<double, 3>> vertices; // unique coords
@@ -76,7 +76,7 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
     }
   }
 
-  if (verbose) {
+  if (LoopCGAL::verbose) {
     std::cout << "Vertices after remeshing: " << vertices.size() << '\n';
     std::cout << "Duplicate‑detection grid cells: " << qmap.size() << '\n';
   }
@@ -93,11 +93,11 @@ NumpyMesh export_mesh(const TriangleMesh &tm, double area_threshold,
 
     if (area >= area_threshold)
       triangles.push_back(tri);
-    else if (verbose)
+    else if (LoopCGAL::verbose)
       std::cout << "Skipping degenerate face (A=" << area << ")\n";
   }
 
-  if (verbose)
+  if (LoopCGAL::verbose)
     std::cout << "Kept " << triangles.size() << " triangles.\n";
 
   // —‑‑‑‑‑ 3.  Convert to NumPy arrays -----------------------------------

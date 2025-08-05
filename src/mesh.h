@@ -15,35 +15,35 @@ typedef Kernel::Point_3 Point;
 typedef CGAL::Surface_mesh<Point> TriangleMesh;
 typedef CGAL::Plane_3<Kernel> Plane;
 typedef CGAL::Vector_3<Kernel> Vector;
-class TriMesh {
+class TriMesh
+{
 public:
-  // Constructor
-  TriMesh(const std::vector<std::vector<int>> &triangles,
-          const std::vector<std::pair<double, double>> &vertices);
-  TriMesh(const pybind11::array_t<double> &vertices,
-          const pybind11::array_t<int> &triangles);
+        // Constructor
+        TriMesh(const std::vector<std::vector<int>> &triangles,
+                const std::vector<std::pair<double, double>> &vertices);
+        TriMesh(const pybind11::array_t<double> &vertices,
+                const pybind11::array_t<int> &triangles);
 
-  // Method to cut the mesh with another surface object
-  void cutWithSurface(TriMesh &surface, bool verbose = false,
-                      bool preserve_intersection = false,
-                      bool preserve_intersection_clipper = false);
+        // Method to cut the mesh with another surface object
+        void cutWithSurface(TriMesh &surface, 
+                            bool preserve_intersection = false,
+                            bool preserve_intersection_clipper = false);
 
-  // Method to remesh the triangle mesh
-  void remesh(bool split_long_edges, bool verbose, double target_edge_length,
-              int number_of_iterations, bool protect_constraints,
-              bool relax_constraints);
-  void init();
-  // Getters for mesh properties
-  void reverseFaceOrientation();
-  NumpyMesh save(double area_threshold, double duplicate_vertex_threshold,
-                 bool verbose = false);
-  void add_fixed_edges(const pybind11::array_t<int> &pairs);
+        // Method to remesh the triangle mesh
+        void remesh(bool split_long_edges,  double target_edge_length,
+                    int number_of_iterations, bool protect_constraints,
+                    bool relax_constraints);
+        void init();
+        // Getters for mesh properties
+        void reverseFaceOrientation();
+        NumpyMesh save(double area_threshold, double duplicate_vertex_threshold);
+        void add_fixed_edges(const pybind11::array_t<int> &pairs);
 
 private:
-  std::set<TriangleMesh::Edge_index> _fixedEdges;
-  TriangleMesh _mesh; // The underlying CGAL surface mesh
-  CGAL::Boolean_property_map<std::set<TriangleMesh::Edge_index>>
-      _edge_is_constrained_map;
+        std::set<TriangleMesh::Edge_index> _fixedEdges;
+        TriangleMesh _mesh; // The underlying CGAL surface mesh
+        CGAL::Boolean_property_map<std::set<TriangleMesh::Edge_index>>
+            _edge_is_constrained_map;
 };
 
 #endif // MESH_HANDLER_H
