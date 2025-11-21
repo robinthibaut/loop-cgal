@@ -13,6 +13,8 @@
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/properties.h>
 #include <CGAL/version.h>
+#include <iostream>
+#include <set>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 namespace PMP = CGAL::Polygon_mesh_processing;
@@ -106,6 +108,7 @@ TriMesh::TriMesh(const pybind11::array_t<double> &vertices,
 
 void TriMesh::init()
 {
+  ensure_valid_mesh(_mesh, "TriMesh", LoopCGAL::verbose);
   _fixedEdges = collect_border_edges(_mesh);
 
   if (LoopCGAL::verbose)
@@ -267,22 +270,29 @@ void TriMesh::remesh(bool split_long_edges,
     std::cout << "Refined mesh → " << _mesh.number_of_vertices() << " V, "
               << _mesh.number_of_faces() << " F\n";
   }
-  if (!CGAL::is_valid_polygon_mesh(_mesh, LoopCGAL::verbose) && LoopCGAL::verbose)
+  if (!ensure_valid_mesh(_mesh, "TriMesh after remesh", LoopCGAL::verbose) &&
+      LoopCGAL::verbose)
     std::cout << "      ! mesh is not a valid polygon mesh after remeshing\n";
+
+  // Refresh constraint map to drop invalidated edges and keep current borders
+  std::set<TriangleMesh::Edge_index> refreshed;
+  for (const auto &e : _fixedEdges)
+  {
+    if (_mesh.is_valid(e))
+      refreshed.insert(e);
+  }
+  auto borders = collect_border_edges(_mesh);
+  refreshed.insert(borders.begin(), borders.end());
+  _fixedEdges.swap(refreshed);
+  _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
 }
 
 void TriMesh::reverseFaceOrientation()
 {
   // Reverse the face orientation of the mesh
-  PMP::remove_isolated_vertices(_mesh);
-  if (!CGAL::is_valid_polygon_mesh(_mesh, LoopCGAL::verbose))
-  {
-    std::cerr << "Mesh is not valid before reversing face orientations."
-              << std::endl;
-    return;
-  }
+  ensure_valid_mesh(_mesh, "TriMesh before reverse", LoopCGAL::verbose);
   PMP::reverse_face_orientations(_mesh);
-  if (!CGAL::is_valid_polygon_mesh(_mesh, LoopCGAL::verbose))
+  if (!ensure_valid_mesh(_mesh, "TriMesh after reverse", LoopCGAL::verbose))
   {
     std::cerr << "Mesh is not valid after reversing face orientations."
               << std::endl;
@@ -294,6 +304,13 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
                              bool preserve_intersection_clipper,
                             bool use_exact_kernel)
 {
+  if (!ensure_valid_mesh(_mesh, "Source mesh", LoopCGAL::verbose) ||
+      !ensure_valid_mesh(clipper._mesh, "Clipper mesh", LoopCGAL::verbose))
+  {
+    std::cerr << "Aborting cut because one mesh is invalid after repair."
+              << std::endl;
+    return;
+  }
 
   if (LoopCGAL::verbose)
   {
@@ -334,55 +351,23 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
     {
       std::cout << "Clipping tm with clipper." << std::endl;
     }
+    bool flag =
+        PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
+    if (!flag && LoopCGAL::verbose)
+      std::cerr << "Clip operation reported failure." << std::endl;
+    ensure_valid_mesh(_mesh, "TriMesh after clip", LoopCGAL::verbose);
 
-    try
+    // refresh constraints to reflect the new topology
+    std::set<TriangleMesh::Edge_index> refreshed;
+    for (const auto &e : _fixedEdges)
     {
-      // bool flag =
-      //     PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
-      bool flag = false;
-      try
-      {
-        if (use_exact_kernel){
-          Exact_Mesh exact_clipper = convert_to_exact(clipper);
-          Exact_Mesh exact_mesh = convert_to_exact(*this);
-          flag = PMP::clip(exact_mesh, exact_clipper, CGAL::parameters::clip_volume(false));
-        set_mesh(convert_to_double_mesh(exact_mesh));
-        }
-        else{
-          flag = PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
-        }
-        
-      }
-      catch (const std::exception &e)
-      {
-        std::cerr << "Corefinement failed: " << e.what() << std::endl;
-      }
-      if (!flag)
-      {
-        std::cerr << "Warning: Clipping operation failed." << std::endl;
-      }
-      else
-      {
-        if (LoopCGAL::verbose)
-        {
-          std::cout << "Clipping successful. Result has "
-                    << _mesh.number_of_vertices() << " vertices and "
-                    << _mesh.number_of_faces() << " faces." << std::endl;
-        }
-      }
+      if (_mesh.is_valid(e))
+        refreshed.insert(e);
     }
-    catch (const std::exception &e)
-    {
-      std::cerr << "Error during clipping: " << e.what() << std::endl;
-    }
-  }
-  else
-  {
-    if (LoopCGAL::verbose)
-    {
-      std::cout << "Meshes do not intersect. No clipping performed."
-                << std::endl;
-    }
+    auto borders = collect_border_edges(_mesh);
+    refreshed.insert(borders.begin(), borders.end());
+    _fixedEdges.swap(refreshed);
+    _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
   }
 }
 

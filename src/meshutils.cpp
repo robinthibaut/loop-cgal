@@ -2,6 +2,13 @@
 #include "mesh.h"
 #include "globals.h"
 #include "sizet.h"
+#include <CGAL/Polygon_mesh_processing/merge_border_vertices.h>
+#include <CGAL/Polygon_mesh_processing/repair.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+#include <CGAL/version.h>
+#include <iostream>
+#include <set>
+#include <string>
 std::set<TriangleMesh::Edge_index>
 collect_border_edges(const TriangleMesh &tm) {
   std::set<TriangleMesh::Edge_index> border_edges;
@@ -297,4 +304,34 @@ TriangleMesh convert_to_double_mesh(const Exact_Mesh& input) {
   }
 
   return result;
+}
+
+bool ensure_valid_mesh(TriangleMesh &tm, const std::string &label,
+                       bool verbose) {
+  namespace PMP = CGAL::Polygon_mesh_processing;
+
+  if (tm.is_empty()) {
+    if (verbose)
+      std::cerr << label << " is empty – cannot repair." << std::endl;
+    return false;
+  }
+
+  PMP::remove_isolated_vertices(tm);
+  PMP::stitch_borders(tm);
+  PMP::merge_duplicated_vertices_in_boundary_cycles(tm);
+  PMP::duplicate_non_manifold_vertices(tm);
+
+#if CGAL_VERSION_NR >= 1060000000
+  PMP::remove_almost_degenerate_faces(faces(tm), tm);
+#else
+  PMP::remove_degenerate_faces(faces(tm), tm);
+#endif
+  PMP::triangulate_faces(tm);
+  PMP::remove_isolated_vertices(tm);
+
+  const bool valid_now = CGAL::is_valid_polygon_mesh(tm, verbose);
+  if (!valid_now && verbose) {
+    std::cerr << label << " is still invalid after repair." << std::endl;
+  }
+  return valid_now;
 }

@@ -9,6 +9,7 @@
 #include <CGAL/property_map.h>
 #include <numpymesh.h>
 #include <pybind11/numpy.h>
+#include <set>
 #include <utility> // For std::pair
 #include <vector>
 #include "meshenums.h"
