@@ -49,6 +49,7 @@ public:
         const TriangleMesh& get_mesh() const { return _mesh; }
         void set_mesh(const TriangleMesh& mesh) { _mesh = mesh; }
 private:
+        bool repair_self_intersections(double target_edge_length);
         std::set<TriangleMesh::Edge_index> _fixedEdges;
         TriangleMesh _mesh; // The underlying CGAL surface mesh
         CGAL::Boolean_property_map<std::set<TriangleMesh::Edge_index>>

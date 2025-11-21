@@ -326,6 +326,89 @@ void TriMesh::remesh(bool split_long_edges,
   refreshed.insert(borders.begin(), borders.end());
   _fixedEdges.swap(refreshed);
   _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
+
+  // Post-remesh repair: fix any self-intersections introduced during remeshing
+  // Only run if self-intersections are present (avoid unnecessary cost on clean meshes)
+  if (PMP::does_self_intersect(_mesh))
+  {
+    if (!repair_self_intersections(target_edge_length))
+    {
+      if (LoopCGAL::verbose)
+      {
+        std::cerr << "Warning: Could not fully repair self-intersections after remesh" << std::endl;
+      }
+    }
+  }
+}
+
+bool TriMesh::repair_self_intersections(double target_edge_length)
+{
+  // Repair self-intersections using CGAL's repair tools
+  // Returns true if mesh is valid after repair (or had no self-intersections)
+
+  auto params = CGAL::parameters::vertex_point_map(get(CGAL::vertex_point, _mesh));
+
+  if (!PMP::does_self_intersect(_mesh, params))
+  {
+    return true;  // No self-intersections, nothing to do
+  }
+
+  // Guard against zero or negative edge length
+  if (target_edge_length <= 0.0)
+  {
+    // Fall back to bbox-based edge length
+    CGAL::Bbox_3 bb = PMP::bbox(_mesh);
+    const double bbox_diag = std::sqrt(CGAL::square(bb.xmax() - bb.xmin()) +
+                                       CGAL::square(bb.ymax() - bb.ymin()) +
+                                       CGAL::square(bb.zmax() - bb.zmin()));
+    target_edge_length = 0.01 * bbox_diag;
+
+    if (LoopCGAL::verbose)
+    {
+      std::cout << "Using bbox-based target edge length: " << target_edge_length << std::endl;
+    }
+  }
+
+  if (LoopCGAL::verbose)
+  {
+    std::cout << "Repairing self-intersections..." << std::endl;
+  }
+
+  // Step 1: Remove self-intersections (strongest tool)
+  PMP::experimental::remove_self_intersections(faces(_mesh), _mesh, params);
+
+  // Step 2: Clean up resulting mesh
+  PMP::remove_isolated_vertices(_mesh);
+  PMP::remove_degenerate_faces(faces(_mesh), _mesh, params);
+
+  // Step 3: Stitch borders (exact matches only)
+  PMP::stitch_borders(_mesh, CGAL::parameters::maximum_number_of_faces(0));
+
+  // Step 4: One iteration of remeshing to stabilize normals/topology
+  // This heals triangle flips introduced by remove_self_intersections
+  PMP::isotropic_remeshing(
+      faces(_mesh),
+      target_edge_length,
+      _mesh,
+      CGAL::parameters::number_of_iterations(1)
+                        .protect_constraints(true)
+                        .relax_constraints(false));
+
+  // Verify repair succeeded
+  bool still_intersecting = PMP::does_self_intersect(_mesh, params);
+
+  if (still_intersecting)
+  {
+    std::cerr << "Warning: Self-intersections remain after repair attempt" << std::endl;
+    return false;
+  }
+
+  if (LoopCGAL::verbose)
+  {
+    std::cout << "Self-intersections successfully repaired" << std::endl;
+  }
+
+  return true;
 }
 
 void TriMesh::reverseFaceOrientation()
@@ -441,14 +524,33 @@ bool TriMesh::cutWithSurface(TriMesh &clipper,
                 << clipper_borders.size() << ")." << std::endl;
     }
 
-    // For open meshes, check for self-intersections which can cause clip failures
+    // Calculate target edge length for repair (mean edge length)
+    double source_mean_edge = 0.0;
+    if (_mesh.number_of_edges() > 0)
+    {
+      for (auto e : _mesh.edges())
+      {
+        source_mean_edge += PMP::edge_length(e, _mesh);
+      }
+      source_mean_edge /= _mesh.number_of_edges();
+    }
+
+    double clipper_mean_edge = 0.0;
+    if (clipper._mesh.number_of_edges() > 0)
+    {
+      for (auto e : clipper._mesh.edges())
+      {
+        clipper_mean_edge += PMP::edge_length(e, clipper._mesh);
+      }
+      clipper_mean_edge /= clipper._mesh.number_of_edges();
+    }
+
+    // For open meshes, check for and repair self-intersections before clipping
     if (PMP::does_self_intersect(_mesh))
     {
-      std::cerr << "Warning: Source mesh has self-intersections. "
-                << "Attempting to proceed, but clip may fail." << std::endl;
+      std::cerr << "Warning: Source mesh has self-intersections. Attempting repair..." << std::endl;
 
-      // Try to repair by removing self-intersections
-      if (!ensure_valid_mesh(_mesh, "Source mesh (with self-intersections)", LoopCGAL::verbose))
+      if (!repair_self_intersections(source_mean_edge))
       {
         std::cerr << "Error: Cannot repair source mesh self-intersections." << std::endl;
         return false;
@@ -457,11 +559,9 @@ bool TriMesh::cutWithSurface(TriMesh &clipper,
 
     if (PMP::does_self_intersect(clipper._mesh))
     {
-      std::cerr << "Warning: Clipper mesh has self-intersections. "
-                << "Attempting to proceed, but clip may fail." << std::endl;
+      std::cerr << "Warning: Clipper mesh has self-intersections. Attempting repair..." << std::endl;
 
-      // Try to repair by removing self-intersections
-      if (!ensure_valid_mesh(clipper._mesh, "Clipper mesh (with self-intersections)", LoopCGAL::verbose))
+      if (!clipper.repair_self_intersections(clipper_mean_edge))
       {
         std::cerr << "Error: Cannot repair clipper mesh self-intersections." << std::endl;
         return false;
