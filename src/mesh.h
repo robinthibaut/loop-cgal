@@ -30,7 +30,8 @@ public:
                 const pybind11::array_t<int> &triangles);
 
         // Method to cut the mesh with another surface object
-        void cutWithSurface(TriMesh &surface, 
+        // Returns true if clipping occurred, false if meshes don't intersect or operation failed
+        bool cutWithSurface(TriMesh &surface,
                             bool preserve_intersection = false,
                             bool preserve_intersection_clipper = false,
                             bool use_exact_kernel = true);

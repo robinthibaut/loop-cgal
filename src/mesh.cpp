@@ -294,7 +294,7 @@ void TriMesh::reverseFaceOrientation()
   }
 }
 
-void TriMesh::cutWithSurface(TriMesh &clipper,
+bool TriMesh::cutWithSurface(TriMesh &clipper,
                              bool preserve_intersection,
                              bool preserve_intersection_clipper,
                             bool use_exact_kernel)
@@ -302,9 +302,9 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
   if (!ensure_valid_mesh(_mesh, "Source mesh", LoopCGAL::verbose) ||
       !ensure_valid_mesh(clipper._mesh, "Clipper mesh", LoopCGAL::verbose))
   {
-    std::cerr << "Aborting cut because one mesh is invalid after repair."
+    std::cerr << "Error: Aborting cut because one mesh is invalid after repair."
               << std::endl;
-    return;
+    return false;
   }
 
   if (LoopCGAL::verbose)
@@ -316,54 +316,66 @@ void TriMesh::cutWithSurface(TriMesh &clipper,
   if (!CGAL::is_valid_polygon_mesh(_mesh, LoopCGAL::verbose))
   {
     std::cerr << "Error: Source mesh is invalid!" << std::endl;
-    return;
+    return false;
   }
 
   if (!CGAL::is_valid_polygon_mesh(clipper._mesh, LoopCGAL::verbose))
   {
     std::cerr << "Error: Clipper mesh is invalid!" << std::endl;
-    return;
+    return false;
   }
 
   if (_mesh.number_of_vertices() == 0 || _mesh.number_of_faces() == 0)
   {
     std::cerr << "Error: Source mesh is empty!" << std::endl;
-    return;
+    return false;
   }
 
   if (clipper._mesh.number_of_vertices() == 0 ||
       clipper._mesh.number_of_faces() == 0)
   {
     std::cerr << "Error: Clipper mesh is empty!" << std::endl;
-    return;
+    return false;
   }
 
   bool intersection = PMP::do_intersect(_mesh, clipper._mesh);
-  if (intersection)
+  if (!intersection)
   {
-    // Clip tm with clipper
     if (LoopCGAL::verbose)
     {
-      std::cout << "Clipping tm with clipper." << std::endl;
+      std::cout << "Warning: Meshes do not intersect, clipping skipped." << std::endl;
     }
-    bool flag =
-        PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
-    if (!flag && LoopCGAL::verbose)
-      std::cerr << "Clip operation reported failure." << std::endl;
-    ensure_valid_mesh(_mesh, "TriMesh after clip", LoopCGAL::verbose);
-
-    // refresh constraints to reflect the new topology
-    std::set<TriangleMesh::Edge_index> refreshed;
-    for (const auto &e : _fixedEdges)
-    {
-      if (_mesh.is_valid(e))
-        refreshed.insert(e);
-    }
-    auto borders = collect_border_edges(_mesh);
-    refreshed.insert(borders.begin(), borders.end());
-    _fixedEdges.swap(refreshed);
-    _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
+    return false;
   }
+
+  // Clip tm with clipper
+  if (LoopCGAL::verbose)
+  {
+    std::cout << "Clipping tm with clipper." << std::endl;
+  }
+  bool flag =
+      PMP::clip(_mesh, clipper._mesh, CGAL::parameters::clip_volume(false));
+  if (!flag)
+  {
+    std::cerr << "Error: Clip operation failed." << std::endl;
+    return false;
+  }
+
+  ensure_valid_mesh(_mesh, "TriMesh after clip", LoopCGAL::verbose);
+
+  // refresh constraints to reflect the new topology
+  std::set<TriangleMesh::Edge_index> refreshed;
+  for (const auto &e : _fixedEdges)
+  {
+    if (_mesh.is_valid(e))
+      refreshed.insert(e);
+  }
+  auto borders = collect_border_edges(_mesh);
+  refreshed.insert(borders.begin(), borders.end());
+  _fixedEdges.swap(refreshed);
+  _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
+
+  return true;
 }
 
 NumpyMesh TriMesh::save(double area_threshold,
