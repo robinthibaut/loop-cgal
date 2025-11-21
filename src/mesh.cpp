@@ -296,8 +296,7 @@ void TriMesh::reverseFaceOrientation()
 
 bool TriMesh::cutWithSurface(TriMesh &clipper,
                              bool preserve_intersection,
-                             bool preserve_intersection_clipper,
-                            bool use_exact_kernel)
+                             bool use_exact_kernel)
 {
   if (!ensure_valid_mesh(_mesh, "Source mesh", LoopCGAL::verbose) ||
       !ensure_valid_mesh(clipper._mesh, "Clipper mesh", LoopCGAL::verbose))
@@ -341,11 +340,44 @@ bool TriMesh::cutWithSurface(TriMesh &clipper,
   bool intersection = PMP::do_intersect(_mesh, clipper._mesh);
   if (!intersection)
   {
-    if (LoopCGAL::verbose)
+    // For open meshes or near-coplanar surfaces, inexact intersection detection may fail
+    // Try with exact kernel if requested
+    if (use_exact_kernel && (LoopCGAL::verbose))
     {
-      std::cout << "Warning: Meshes do not intersect, clipping skipped." << std::endl;
+      std::cout << "Inexact do_intersect returned false. Trying exact kernel..." << std::endl;
     }
-    return false;
+
+    if (use_exact_kernel)
+    {
+      try
+      {
+        Exact_Mesh exact_mesh = convert_to_exact(*this);
+        Exact_Mesh exact_clipper = convert_to_exact(clipper);
+
+        bool exact_intersection = PMP::do_intersect(exact_mesh, exact_clipper);
+        if (exact_intersection)
+        {
+          if (LoopCGAL::verbose)
+          {
+            std::cout << "Exact kernel detected intersection. Proceeding with clip." << std::endl;
+          }
+          intersection = true;  // Override with exact result
+        }
+      }
+      catch (const std::exception &e)
+      {
+        std::cerr << "Error during exact kernel intersection test: " << e.what() << std::endl;
+      }
+    }
+
+    if (!intersection)
+    {
+      if (LoopCGAL::verbose)
+      {
+        std::cout << "Warning: Meshes do not intersect, clipping skipped." << std::endl;
+      }
+      return false;
+    }
   }
 
   // Check if meshes are open (have borders) and perform enhanced validation
