@@ -30,11 +30,15 @@ TriMesh::TriMesh(const std::vector<std::vector<int>> &triangles,
               << triangles.size() << " triangles." << std::endl;
   }
 
+  // Add property map to track original vertex indices
+  _orig_vertex_id = _mesh.add_property_map<TriangleMesh::Vertex_index, int>("v:orig_id", -1).first;
+
   // Assemble CGAL mesh objects from numpy/pybind11 arrays
   for (ssize_t i = 0; i < vertices.size(); ++i)
   {
-    vertex_indices.push_back(
-        _mesh.add_vertex(Point(vertices[i].first, vertices[i].second, 0.0)));
+    TriangleMesh::Vertex_index v_idx = _mesh.add_vertex(Point(vertices[i].first, vertices[i].second, 0.0));
+    vertex_indices.push_back(v_idx);
+    _orig_vertex_id[v_idx] = i;  // Store original index
   }
   for (ssize_t i = 0; i < triangles.size(); ++i)
   {
@@ -59,10 +63,14 @@ TriMesh::TriMesh(const pybind11::array_t<double> &vertices,
   auto tris = triangles.unchecked<2>();
   std::vector<TriangleMesh::Vertex_index> vertex_indices;
 
+  // Add property map to track original vertex indices
+  _orig_vertex_id = _mesh.add_property_map<TriangleMesh::Vertex_index, int>("v:orig_id", -1).first;
+
   for (ssize_t i = 0; i < verts.shape(0); ++i)
   {
-    vertex_indices.push_back(
-        _mesh.add_vertex(Point(verts(i, 0), verts(i, 1), verts(i, 2))));
+    TriangleMesh::Vertex_index v_idx = _mesh.add_vertex(Point(verts(i, 0), verts(i, 1), verts(i, 2)));
+    vertex_indices.push_back(v_idx);
+    _orig_vertex_id[v_idx] = i;  // Store original PyVista index
   }
 
   for (ssize_t i = 0; i < tris.shape(0); ++i)
@@ -160,6 +168,44 @@ void TriMesh::add_fixed_edges(const pybind11::array_t<int> &pairs)
   // // Update the property map with the new fixed edges
   _edge_is_constrained_map = CGAL::make_boolean_property_map(_fixedEdges);
 }
+
+pybind11::array_t<int> TriMesh::orig_vertex_map() const
+{
+  // Count the maximum original vertex ID to determine array size
+  int max_orig_id = -1;
+  for (auto v : _mesh.vertices())
+  {
+    int orig_id = _orig_vertex_id[v];
+    if (orig_id > max_orig_id)
+    {
+      max_orig_id = orig_id;
+    }
+  }
+
+  // Create output array (orig_id -> CGAL vertex index or -1 if removed)
+  size_t n_orig = max_orig_id + 1;
+  auto result = pybind11::array_t<int>(n_orig);
+  auto buf = result.mutable_unchecked<1>();
+
+  // Initialize all to -1 (vertex was removed/merged)
+  for (size_t i = 0; i < n_orig; ++i)
+  {
+    buf(i) = -1;
+  }
+
+  // Fill in mapping for vertices that still exist
+  for (auto v : _mesh.vertices())
+  {
+    int orig_id = _orig_vertex_id[v];
+    if (orig_id >= 0 && orig_id < static_cast<int>(n_orig))
+    {
+      buf(orig_id) = static_cast<int>(v.idx());  // CGAL vertex index
+    }
+  }
+
+  return result;
+}
+
 void TriMesh::remesh(bool split_long_edges,
                      double target_edge_length, int number_of_iterations,
                      bool protect_constraints, bool relax_constraints)

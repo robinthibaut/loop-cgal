@@ -37,6 +37,9 @@ PYBIND11_MODULE(_loop_cgal, m)
          .def("add_fixed_edges", &TriMesh::add_fixed_edges,
               py::arg("pairs"),
               "Vertex index pairs defining edges to be fixed in mesh when remeshing.")
+         .def("orig_vertex_map", &TriMesh::orig_vertex_map,
+              "Get mapping from original PyVista vertex indices to CGAL vertex indices. "
+              "Returns array where result[orig_id] = cgal_vertex_idx or -1 if removed.")
          .def("cut_with_implicit_function", &TriMesh::cut_with_implicit_function,
               py::arg("property"), py::arg("value"),py::arg("cutmode") = ImplicitCutMode::KEEP_POSITIVE_SIDE,
               "Cut the mesh with an implicit function defined by vertex properties.");

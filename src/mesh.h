@@ -45,6 +45,7 @@ public:
         void reverseFaceOrientation();
         NumpyMesh save(double area_threshold, double duplicate_vertex_threshold);
         void add_fixed_edges(const pybind11::array_t<int> &pairs);
+        pybind11::array_t<int> orig_vertex_map() const;
         const TriangleMesh& get_mesh() const { return _mesh; }
         void set_mesh(const TriangleMesh& mesh) { _mesh = mesh; }
 private:
@@ -52,6 +53,7 @@ private:
         TriangleMesh _mesh; // The underlying CGAL surface mesh
         CGAL::Boolean_property_map<std::set<TriangleMesh::Edge_index>>
             _edge_is_constrained_map;
+        TriangleMesh::Property_map<TriangleMesh::Vertex_index, int> _orig_vertex_id;
 };
 
 #endif // MESH_HANDLER_H
