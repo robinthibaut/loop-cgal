@@ -891,4 +891,8 @@ void TriMesh::cut_with_implicit_function(const std::vector<double> &property, do
 
   // Replace internal mesh
   _mesh = std::move(newmesh);
+
+  // Reinitialize constraints after mesh replacement
+  // Old _fixedEdges contains invalid handles from the old mesh
+  init();
 }
