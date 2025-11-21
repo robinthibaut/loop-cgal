@@ -348,11 +348,54 @@ bool TriMesh::cutWithSurface(TriMesh &clipper,
     return false;
   }
 
+  // Check if meshes are open (have borders) and perform enhanced validation
+  auto source_borders = collect_border_edges(_mesh);
+  auto clipper_borders = collect_border_edges(clipper._mesh);
+  bool source_is_open = !source_borders.empty();
+  bool clipper_is_open = !clipper_borders.empty();
+
+  if (source_is_open || clipper_is_open)
+  {
+    if (LoopCGAL::verbose)
+    {
+      std::cout << "Note: Operating on open meshes (source borders: "
+                << source_borders.size() << ", clipper borders: "
+                << clipper_borders.size() << ")." << std::endl;
+    }
+
+    // For open meshes, check for self-intersections which can cause clip failures
+    if (PMP::does_self_intersect(_mesh))
+    {
+      std::cerr << "Warning: Source mesh has self-intersections. "
+                << "Attempting to proceed, but clip may fail." << std::endl;
+
+      // Try to repair by removing self-intersections
+      if (!ensure_valid_mesh(_mesh, "Source mesh (with self-intersections)", LoopCGAL::verbose))
+      {
+        std::cerr << "Error: Cannot repair source mesh self-intersections." << std::endl;
+        return false;
+      }
+    }
+
+    if (PMP::does_self_intersect(clipper._mesh))
+    {
+      std::cerr << "Warning: Clipper mesh has self-intersections. "
+                << "Attempting to proceed, but clip may fail." << std::endl;
+
+      // Try to repair by removing self-intersections
+      if (!ensure_valid_mesh(clipper._mesh, "Clipper mesh (with self-intersections)", LoopCGAL::verbose))
+      {
+        std::cerr << "Error: Cannot repair clipper mesh self-intersections." << std::endl;
+        return false;
+      }
+    }
+  }
+
   // Store original borders before clipping to identify new intersection edges
   std::set<TriangleMesh::Edge_index> original_borders;
   if (preserve_intersection)
   {
-    original_borders = collect_border_edges(_mesh);
+    original_borders = source_borders;
     if (LoopCGAL::verbose)
     {
       std::cout << "Preserving intersection: " << original_borders.size()
@@ -411,11 +454,37 @@ bool TriMesh::cutWithSurface(TriMesh &clipper,
   }
   else if (!flag)
   {
-    std::cerr << "Error: Clip operation failed." << std::endl;
+    std::cerr << "Error: Clip operation failed";
+    if (source_is_open || clipper_is_open)
+    {
+      std::cerr << " (operating on open mesh with " << source_borders.size()
+                << " source borders, " << clipper_borders.size() << " clipper borders)";
+    }
+    std::cerr << "." << std::endl;
+
+    if (source_is_open || clipper_is_open)
+    {
+      std::cerr << "Note: Open meshes with complex borders may fail to clip. "
+                << "Consider remeshing inputs before clipping." << std::endl;
+    }
     return false;
   }
 
   ensure_valid_mesh(_mesh, "TriMesh after clip", LoopCGAL::verbose);
+
+  // Verify the result doesn't have self-intersections (can happen with open meshes)
+  if (PMP::does_self_intersect(_mesh))
+  {
+    std::cerr << "Error: Clipped mesh has self-intersections";
+    if (source_is_open || clipper_is_open)
+    {
+      std::cerr << " (result of clipping open meshes)";
+    }
+    std::cerr << "." << std::endl;
+    std::cerr << "Note: The clip operation completed but produced invalid geometry. "
+              << "Consider using exact kernel or remeshing inputs." << std::endl;
+    return false;
+  }
 
   // Refresh constraints to reflect the new topology
   std::set<TriangleMesh::Edge_index> refreshed;
